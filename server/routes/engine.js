@@ -2,6 +2,7 @@ const express = require('express');
 const cache = require('../cache');
 const cfg = require('../config');
 const espnService = require('../services/espn');
+const { fetchH2H } = espnService;
 const elo = require('../engine/elo');
 const { calculateMEI } = require('../engine/mei');
 const { scoreMatrix, ouMatrix, ahMatrix, resultProbs } = require('../engine/matrix');
@@ -20,8 +21,11 @@ async function buildEngine(fixtureId) {
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  // Fetch fixture from ESPN
-  const fixtureData = await espnService.fetchFixtureById(fixtureId);
+  // Fetch fixture and H2H in parallel
+  const [fixtureData, rawH2H] = await Promise.all([
+    espnService.fetchFixtureById(fixtureId),
+    fetchH2H(fixtureId),
+  ]);
   if (!fixtureData) throw new Error(`Fixture ${fixtureId} not found`);
 
   const fixture = fixtureData;
@@ -132,6 +136,30 @@ async function buildEngine(fixtureId) {
   const ah = ahMatrix(xg.home, xg.away);
   const nextStates = nextStateProbs(tempo.currentState, minute, score);
 
+  // Normalize H2H to current home team's perspective
+  let h2h = null;
+  if (rawH2H) {
+    const homeId = String(fixture.teams?.home?.id);
+    const awayId = String(fixture.teams?.away?.id);
+    const perspIsHome = rawH2H.perspectiveTeamId === homeId;
+
+    const games = rawH2H.games.map(g => {
+      // Determine scores from current home team's viewpoint
+      const curHomeIsHistHome = g.homeTeamId === homeId;
+      const curHomeScore = curHomeIsHistHome ? g.homeTeamScore : g.awayTeamScore;
+      const curAwayScore = curHomeIsHistHome ? g.awayTeamScore : g.homeTeamScore;
+      // Flip W/L if perspective was the away team
+      let result = g.result;
+      if (!perspIsHome) result = result === 'W' ? 'L' : result === 'L' ? 'W' : 'D';
+      return { ...g, curHomeScore, curAwayScore, result };
+    });
+
+    const wins  = games.filter(g => g.result === 'W').length;
+    const draws = games.filter(g => g.result === 'D').length;
+    const losses = games.filter(g => g.result === 'L').length;
+    h2h = { games, record: { wins, draws, losses, total: games.length }, homeId, awayId };
+  }
+
   const result = {
     match: `${homeTeam} vs ${awayTeam}`,
     fixtureId: String(fixtureId),
@@ -176,6 +204,7 @@ async function buildEngine(fixtureId) {
     ah_matrix: ah,
 
     odds: oddsInput,
+    h2h,
     recommended_zone: scoreZone?.zone || null,
     updated: new Date().toISOString(),
   };

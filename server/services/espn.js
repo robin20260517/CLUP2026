@@ -235,4 +235,55 @@ function extractStats(espnSummary) {
   }));
 }
 
-module.exports = { fetchAllFixtures, fetchLiveFixtures, fetchFixtureById, extractStats, convertEvent, fetchDay };
+// Fetch and parse H2H history from ESPN summary endpoint
+async function fetchH2H(espnId) {
+  const cacheKey = `h2h:${espnId}`;
+  // cache stores { data: result|null } to distinguish hit-with-null from miss
+  const cached = cache.get(cacheKey);
+  if (cached !== null) return cached.data;
+
+  try {
+    const { data } = await axios.get(`${ESPN_BASE}/summary`, {
+      params: { event: espnId },
+      timeout: 8000,
+    });
+
+    const h2hGroups = data.headToHeadGames || [];
+    if (!h2hGroups.length) {
+      cache.set(cacheKey, { data: null }, 3600);
+      return null;
+    }
+
+    // Take the first team's event list (both entries share the same games)
+    const teamEntry = h2hGroups[0];
+    const events = (teamEntry.events || []).slice(0, 10);
+
+    const games = events.map(e => ({
+      id: e.id,
+      date: e.gameDate,
+      homeTeamId: String(e.homeTeamId),
+      awayTeamId: String(e.awayTeamId),
+      homeTeamScore: parseInt(e.homeTeamScore) || 0,
+      awayTeamScore: parseInt(e.awayTeamScore) || 0,
+      result: e.gameResult, // W/D/L from teamEntry.team perspective
+      competition: e.competitionName,
+      round: e.roundName,
+      opponentName: e.opponent?.displayName,
+      opponentLogo: e.opponentLogo || e.opponent?.logos?.[0]?.href,
+    }));
+
+    const result = {
+      perspectiveTeamId: String(teamEntry.team?.id),
+      perspectiveTeamName: teamEntry.team?.displayName,
+      games,
+    };
+
+    cache.set(cacheKey, { data: result }, 7200); // 2h cache — H2H history rarely changes
+    return result;
+  } catch (_) {
+    cache.set(cacheKey, { data: null }, 1800);
+    return null;
+  }
+}
+
+module.exports = { fetchAllFixtures, fetchLiveFixtures, fetchFixtureById, extractStats, convertEvent, fetchDay, fetchH2H };

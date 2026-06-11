@@ -9,6 +9,7 @@ import AHMatrix from '../components/AHMatrix';
 import LiveEdge from '../components/LiveEdge';
 import EloComparison from '../components/EloComparison';
 import ScoreZone from '../components/ScoreZone';
+import H2HHistory from '../components/H2HHistory';
 import { ArrowLeft, RefreshCw, Clock } from 'lucide-react';
 
 function Skeleton({ className = '' }) {
@@ -180,8 +181,13 @@ export default function MatchDetail() {
         <ScoreZone scoreZone={engine.score_zone} />
       </div>
 
-      {/* ELO + E: 15-min (live only) */}
+      {/* H2H + ELO */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <H2HHistory
+          h2h={engine.h2h}
+          homeTeam={engine.homeTeam}
+          awayTeam={engine.awayTeam}
+        />
         <EloComparison
           homeTeam={engine.homeTeam}
           awayTeam={engine.awayTeam}
@@ -189,66 +195,68 @@ export default function MatchDetail() {
           xg={engine.xg}
           probs={engine.probs_prior}
         />
-        {isLive && (
-          <div className="card p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h2 className="font-display font-semibold text-zinc-100">15分钟节奏判别</h2>
-                <p className="text-xs text-zinc-500 mt-0.5">Module E · 滚球快照</p>
-              </div>
-              {engine.fifteen_min?.locked ? (
-                <span className="badge bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
-                  已锁定 {engine.fifteen_min.snapMinute}'
-                </span>
-              ) : (
-                <span className="badge bg-zinc-800 border border-zinc-700 text-zinc-500 text-xs">
-                  等待第15分钟
-                </span>
-              )}
+      </div>
+
+      {/* Module E: 15-min discriminator (live only) */}
+      {isLive && (
+        <div className="card p-5">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h2 className="font-display font-semibold text-zinc-100">15分钟节奏判别</h2>
+              <p className="text-xs text-zinc-500 mt-0.5">Module E · 滚球快照</p>
             </div>
-
-            {engine.fifteen_min?.mode === 'waiting' && (
-              <div className="flex items-center justify-center h-20 text-zinc-600 text-sm">
-                比赛开始后自动识别...
-              </div>
-            )}
-
-            {engine.fifteen_min?.mode === 'early' && (
-              <div className="space-y-2">
-                <p className="text-xs text-amber-400">早期信号（{engine.fifteen_min.currentMinute}'，未锁定）</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-400">{engine.fifteen_min.earlyModel}</span>
-                  <span className="font-mono text-zinc-500">{engine.fifteen_min.earlyConfidence}%</span>
-                </div>
-              </div>
-            )}
-
-            {engine.fifteen_min?.confirmed && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-100 font-medium">{engine.fifteen_min.label}</span>
-                  <span className="font-mono text-brand-400 font-medium">{engine.fifteen_min.confidence}%</span>
-                </div>
-                {engine.fifteen_min.halfTimeZone && (
-                  <div className="p-3 rounded-lg bg-zinc-800/60 border border-zinc-700">
-                    <p className="text-xs text-zinc-500 mb-2">上半场预测区间</p>
-                    <div className="flex gap-2 flex-wrap">
-                      {engine.fifteen_min.halfTimeZone.scores?.map((s, i) => (
-                        <span key={s} className={`font-mono text-sm px-2 py-0.5 rounded border ${
-                          i === 0
-                            ? 'text-brand-400 bg-brand-500/10 border-brand-500/20'
-                            : 'text-zinc-400 bg-zinc-800 border-zinc-700'
-                        }`}>{s}</span>
-                      ))}
-                    </div>
-                    <p className="text-xs text-zinc-500 mt-1.5">概率 {engine.fifteen_min.halfTimeZone.prob}%</p>
-                  </div>
-                )}
-              </div>
+            {engine.fifteen_min?.locked ? (
+              <span className="badge bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+                已锁定 {engine.fifteen_min.snapMinute}'
+              </span>
+            ) : (
+              <span className="badge bg-zinc-800 border border-zinc-700 text-zinc-500 text-xs">
+                等待第15分钟
+              </span>
             )}
           </div>
-        )}
-      </div>
+
+          {engine.fifteen_min?.mode === 'waiting' && (
+            <div className="flex items-center justify-center h-20 text-zinc-600 text-sm">
+              比赛开始后自动识别...
+            </div>
+          )}
+
+          {engine.fifteen_min?.mode === 'early' && (
+            <div className="space-y-2">
+              <p className="text-xs text-amber-400">早期信号（{engine.fifteen_min.currentMinute}'，未锁定）</p>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-zinc-400">{engine.fifteen_min.earlyModel}</span>
+                <span className="font-mono text-zinc-500">{engine.fifteen_min.earlyConfidence}%</span>
+              </div>
+            </div>
+          )}
+
+          {engine.fifteen_min?.confirmed && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-zinc-100 font-medium">{engine.fifteen_min.label}</span>
+                <span className="font-mono text-brand-400 font-medium">{engine.fifteen_min.confidence}%</span>
+              </div>
+              {engine.fifteen_min.halfTimeZone && (
+                <div className="p-3 rounded-lg bg-zinc-800/60 border border-zinc-700">
+                  <p className="text-xs text-zinc-500 mb-2">上半场预测区间</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {engine.fifteen_min.halfTimeZone.scores?.map((s, i) => (
+                      <span key={s} className={`font-mono text-sm px-2 py-0.5 rounded border ${
+                        i === 0
+                          ? 'text-brand-400 bg-brand-500/10 border-brand-500/20'
+                          : 'text-zinc-400 bg-zinc-800 border-zinc-700'
+                      }`}>{s}</span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-1.5">概率 {engine.fifteen_min.halfTimeZone.prob}%</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* H/I/J: Matrix trio */}
       <div>
