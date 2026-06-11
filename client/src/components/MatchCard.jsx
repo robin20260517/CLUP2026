@@ -18,7 +18,7 @@ const EDGE_COLORS = {
 function formatDate(dateStr) {
   if (!dateStr) return '--';
   const d = new Date(dateStr);
-  return d.toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Shanghai' });
+  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 export default function MatchCard({ fixture, engine }) {

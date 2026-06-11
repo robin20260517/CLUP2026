@@ -97,7 +97,7 @@ export default function MatchDetail() {
             ) : (
               <span className="flex items-center gap-1 text-xs text-zinc-500">
                 <Clock size={11} />
-                {engine.date ? new Date(engine.date).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '--'}
+                {engine.date ? new Date(engine.date).toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }) : '--'}
               </span>
             )}
           </div>

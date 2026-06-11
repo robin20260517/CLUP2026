@@ -130,10 +130,10 @@ export default function Schedule() {
                 const dateObj = f.fixture?.date ? new Date(f.fixture.date) : null;
                 const isToday = dateObj?.toDateString() === today;
                 const dateStr = dateObj
-                  ? dateObj.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', timeZone: 'Asia/Shanghai' })
+                  ? dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
                   : '--';
                 const timeStr = dateObj
-                  ? dateObj.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Shanghai' })
+                  ? dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
                   : '--:--';
 
                 return (
