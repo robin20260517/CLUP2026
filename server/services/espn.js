@@ -10,9 +10,14 @@ function mapStatus(espnStatus) {
   const completed = espnStatus?.type?.completed;
   if (completed) return 'FT';
   if (name === 'STATUS_HALFTIME') return 'HT';
+  if (name === 'STATUS_FIRST_HALF') return '1H';
+  if (name === 'STATUS_SECOND_HALF') return '2H';
   if (name === 'STATUS_IN_PROGRESS') return period <= 1 ? '1H' : '2H';
+  if (name === 'STATUS_EXTRA_TIME') return 'ET';
+  if (name === 'STATUS_SHOOTOUT') return 'P';
   if (name === 'STATUS_POSTPONED') return 'PST';
   if (name === 'STATUS_SUSPENDED') return 'SUSP';
+  if (name === 'STATUS_FINAL') return 'FT';
   return 'NS';
 }
 
