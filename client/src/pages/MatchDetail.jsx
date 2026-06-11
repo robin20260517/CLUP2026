@@ -12,6 +12,13 @@ import ScoreZone from '../components/ScoreZone';
 import H2HHistory from '../components/H2HHistory';
 import { ArrowLeft, RefreshCw, Clock } from 'lucide-react';
 
+const MODEL_ZH = {
+  'Freeze Model': '冻结模型',
+  'Tug-of-War Model': '拉锯模型',
+  'Broken Game Model': '破局模型',
+  'Expectation Trap Model': '期望陷阱模型',
+};
+
 function Skeleton({ className = '' }) {
   return <div className={`rounded-xl shimmer ${className}`} />;
 }
@@ -226,7 +233,7 @@ export default function MatchDetail() {
             <div className="space-y-2">
               <p className="text-xs text-amber-400">早期信号（{engine.fifteen_min.currentMinute}'，未锁定）</p>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-400">{engine.fifteen_min.earlyModel}</span>
+                <span className="text-sm text-zinc-400">{MODEL_ZH[engine.fifteen_min.earlyModel] || engine.fifteen_min.earlyModel}</span>
                 <span className="font-mono text-zinc-500">{engine.fifteen_min.earlyConfidence}%</span>
               </div>
             </div>
@@ -235,7 +242,7 @@ export default function MatchDetail() {
           {engine.fifteen_min?.confirmed && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-100 font-medium">{engine.fifteen_min.label}</span>
+                <span className="text-sm text-zinc-100 font-medium">{MODEL_ZH[engine.fifteen_min.label] || engine.fifteen_min.label}</span>
                 <span className="font-mono text-brand-400 font-medium">{engine.fifteen_min.confidence}%</span>
               </div>
               {engine.fifteen_min.halfTimeZone && (

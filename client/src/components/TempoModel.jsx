@@ -1,10 +1,10 @@
 // Module C/D: Tempo + State Machine — handles pre-match prediction and live detection
 
 const TEMPO_CONFIG = {
-  'Freeze Model':           { icon: '❄️', color: '#818cf8', desc: '双方低强度试探，场面沉闷' },
-  'Tug-of-War Model':       { icon: '⚔️', color: '#f59e0b', desc: '势均力敌，拉锯战局面' },
-  'Broken Game Model':      { icon: '💥', color: '#ef4444', desc: '场面已破，进球频繁' },
-  'Expectation Trap Model': { icon: '🎭', color: '#06b6d4', desc: '强队控球，情绪偏差大' },
+  'Freeze Model':           { icon: '❄️', color: '#818cf8', zh: '冻结模型', desc: '双方低强度试探，场面沉闷' },
+  'Tug-of-War Model':       { icon: '⚔️', color: '#f59e0b', zh: '拉锯模型', desc: '势均力敌，拉锯战局面' },
+  'Broken Game Model':      { icon: '💥', color: '#ef4444', zh: '破局模型', desc: '场面已破，进球频繁' },
+  'Expectation Trap Model': { icon: '🎭', color: '#06b6d4', zh: '期望陷阱模型', desc: '强队控球，情绪偏差大' },
 };
 
 const STATE_LABELS = {
@@ -50,7 +50,7 @@ export default function TempoModel({ model, confidence, reason, currentState, ne
         style={{ background: `${tCfg.color}10`, borderColor: `${tCfg.color}30` }}>
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xl">{tCfg.icon}</span>
-          <span className="font-display font-semibold text-zinc-100 text-sm">{model}</span>
+          <span className="font-display font-semibold text-zinc-100 text-sm">{tCfg.zh || model}</span>
         </div>
         <p className="text-xs text-zinc-400">{tCfg.desc}</p>
         {/* Confidence bar */}
@@ -88,7 +88,7 @@ export default function TempoModel({ model, confidence, reason, currentState, ne
                   : { color: '#52525b', background: 'transparent', borderColor: '#3f3f46' }
                 }
               >
-                {cfg.short}
+                {cfg.label}
               </div>
             ))}
           </div>
