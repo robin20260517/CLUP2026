@@ -94,7 +94,7 @@ function predictPreMatchZone(xg, oddsInput, round) {
 
   return {
     zone,
-    label: `Zone ${zone}`,
+    label: zone === 'A' ? '低分区' : zone === 'B' ? '均势区' : '高分区',
     description,
     scores,
     confidence,
@@ -273,7 +273,7 @@ function getScoreZone(stats, score, snapMinute, xg, oddsInput, round, currentMin
 
   return {
     zone,
-    label: `Zone ${zone}`,
+    label: zone === 'A' ? '低分区' : zone === 'B' ? '均势区' : '高分区',
     description,
     scores,
     confidence: 60 + Math.min(25, Math.floor(snapMinute / 3)),

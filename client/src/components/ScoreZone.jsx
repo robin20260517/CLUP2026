@@ -1,9 +1,9 @@
 // Module F: Score Zone — pre-match prediction OR 30-min live confirmation
 
 const ZONE_CONFIG = {
-  A: { color: '#22c55e', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Zone A', name: '低分局' },
-  B: { color: '#f59e0b', bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   label: 'Zone B', name: '中分局' },
-  C: { color: '#ef4444', bg: 'bg-red-500/10',      border: 'border-red-500/20',     label: 'Zone C', name: '高分局' },
+  A: { color: '#22c55e', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: '低分区', name: '低分局' },
+  B: { color: '#f59e0b', bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   label: '均势区', name: '中分局' },
+  C: { color: '#ef4444', bg: 'bg-red-500/10',      border: 'border-red-500/20',     label: '高分区', name: '高分局' },
 };
 
 export default function ScoreZone({ scoreZone }) {
@@ -33,7 +33,7 @@ export default function ScoreZone({ scoreZone }) {
     ? `Module F · 第${snapMinute}'快照锁定`
     : pending
     ? `Module F · 第30分钟确认前（${pendingMinute}'）`
-    : isPreMatch ? 'Pre-match Zone · Module F' : `Module F · ${snapMinute || currentMinute}'确认`;
+    : isPreMatch ? '赛前区间预测 · Module F' : `Module F · 第${snapMinute || currentMinute}'确认`;
 
   return (
     <div className="card p-5">
