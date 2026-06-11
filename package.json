@@ -1,0 +1,14 @@
+{
+  "name": "worldcup-quant",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
+    "install:all": "npm install && npm install --workspace=server && npm install --workspace=client",
+    "build": "npm run build --workspace=client"
+  },
+  "workspaces": ["server", "client"],
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

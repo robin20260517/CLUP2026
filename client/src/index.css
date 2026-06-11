@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  html { font-family: 'DM Sans', sans-serif; }
+
+  body {
+    @apply bg-zinc-950 text-zinc-100 antialiased;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+}
+
+@layer utilities {
+  .font-display { font-family: 'Space Grotesk', sans-serif; }
+  .font-mono    { font-family: 'JetBrains Mono', monospace; }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #06b6d4, #22d3ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+  }
+
+  .border-glow {
+    border-color: rgba(6, 182, 212, 0.4);
+    box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.1);
+  }
+
+  .card {
+    @apply bg-zinc-900 border border-zinc-800 rounded-xl;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200 hover:border-brand-600/40 hover:bg-zinc-800/80;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #3f3f46 transparent;
+  }
+
+  .live-dot::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    animation: pulse 1.5s infinite;
+    margin-right: 4px;
+  }
+}
+
+/* iOS safe area — bottom nav clears the home indicator bar */
+.nav-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(4rem + env(safe-area-inset-bottom));
+}
+
+/* Recharts overrides */
+.recharts-tooltip-wrapper { outline: none !important; }
+.recharts-default-tooltip {
+  background: #18181b !important;
+  border: 1px solid #3f3f46 !important;
+  border-radius: 8px !important;
+  font-family: 'DM Sans', sans-serif !important;
+}
