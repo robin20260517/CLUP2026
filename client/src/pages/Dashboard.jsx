@@ -59,8 +59,8 @@ export default function Dashboard() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['fixtures'],
     queryFn: fetchFixtures,
-    staleTime: 10 * 60_000,
-    refetchInterval: 10 * 60_000,
+    staleTime: 2 * 60_000,
+    refetchInterval: 2 * 60_000,
   });
 
   const fixtures = data?.fixtures || [];
