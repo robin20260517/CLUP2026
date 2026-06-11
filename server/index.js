@@ -9,7 +9,11 @@ const engineRouter = require('./routes/engine');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:4173'] }));
+// Allow localhost in dev; in production ALLOWED_ORIGINS env var overrides
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:4173'];
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 
 app.use('/api/fixtures', fixturesRouter);
