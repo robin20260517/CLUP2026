@@ -209,7 +209,11 @@ async function buildEngine(fixtureId) {
     updated: new Date().toISOString(),
   };
 
-  cache.set(cacheKey, result, isLive ? cfg.ttl.live : cfg.ttl.preMatch);
+  // Today's pre-match fixtures use 90s TTL so kick-off detection is fast
+  const today = new Date().toISOString().slice(0, 10);
+  const isToday = fixture.fixture?.date?.slice(0, 10) === today;
+  const ttl = isLive ? cfg.ttl.live : isToday ? 90 : cfg.ttl.preMatch;
+  cache.set(cacheKey, result, ttl);
   return result;
 }
 

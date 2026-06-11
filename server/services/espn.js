@@ -201,14 +201,29 @@ async function fetchLiveFixtures() {
   );
 }
 
-// Get single fixture by ESPN ID (with live detail if in progress)
+// Get single fixture by ESPN ID — uses today-cache (2 min) to stay current during matches
 async function fetchFixtureById(espnId) {
   const all = await fetchAllFixtures();
-  const fixture = all.find(f => String(f.fixture.id) === String(espnId) || String(f.fixture.espnId) === String(espnId));
+  let fixture = all.find(f => String(f.fixture.id) === String(espnId) || String(f.fixture.espnId) === String(espnId));
 
   if (!fixture) return null;
 
-  // If live, try to get live stats from ESPN summary endpoint
+  // If the fixture is today, refresh its status/score with a short-TTL call
+  const today = new Date().toISOString().slice(0, 10);
+  const fixtureDate = fixture.fixture?.date?.slice(0, 10);
+  if (fixtureDate === today) {
+    const todayKey = `today:${today}`;
+    let todayFixtures = cache.get(todayKey);
+    if (!todayFixtures) {
+      const dateStr = today.replace(/-/g, '');
+      todayFixtures = await fetchDay(dateStr);
+      cache.set(todayKey, todayFixtures, 120); // 2-minute refresh for today
+    }
+    const fresh = todayFixtures.find(f => String(f.fixture.id) === String(espnId) || String(f.fixture.espnId) === String(espnId));
+    if (fresh) fixture = { ...fresh };
+  }
+
+  // If live, fetch summary for stats
   if (['1H', 'HT', '2H', 'ET', 'P'].includes(fixture.fixture.status.short)) {
     try {
       const { data } = await axios.get(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.WORLD/summary`, {
