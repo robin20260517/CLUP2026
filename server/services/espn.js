@@ -213,18 +213,19 @@ async function fetchFixtureById(espnId) {
 
   if (!fixture) return null;
 
-  // If the fixture is today, refresh its status/score with a short-TTL call
-  const today = new Date().toISOString().slice(0, 10);
+  // Refresh status for fixtures scheduled within ±1 day (covers late-running matches past midnight UTC)
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   const fixtureDate = fixture.fixture?.date?.slice(0, 10);
-  if (fixtureDate === today) {
-    const todayKey = `today:${today}`;
-    let todayFixtures = cache.get(todayKey);
-    if (!todayFixtures) {
-      const dateStr = today.replace(/-/g, '');
-      todayFixtures = await fetchDay(dateStr);
-      cache.set(todayKey, todayFixtures, 120); // 2-minute refresh for today
+  if (fixtureDate === todayStr || fixtureDate === yesterdayStr) {
+    const cacheKey2 = `today:${fixtureDate}`;
+    let dayFixtures = cache.get(cacheKey2);
+    if (!dayFixtures) {
+      const dateStr = fixtureDate.replace(/-/g, '');
+      dayFixtures = await fetchDay(dateStr);
+      cache.set(cacheKey2, dayFixtures, 120);
     }
-    const fresh = todayFixtures.find(f => String(f.fixture.id) === String(espnId) || String(f.fixture.espnId) === String(espnId));
+    const fresh = dayFixtures.find(f => String(f.fixture.id) === String(espnId) || String(f.fixture.espnId) === String(espnId));
     if (fresh) fixture = { ...fresh };
   }
 
