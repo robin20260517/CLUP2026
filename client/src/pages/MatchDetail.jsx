@@ -194,6 +194,8 @@ export default function MatchDetail() {
           h2h={engine.h2h}
           homeTeam={translateTeam(engine.homeTeam)}
           awayTeam={translateTeam(engine.awayTeam)}
+          homeTeamEn={engine.homeTeam}
+          awayTeamEn={engine.awayTeam}
         />
         <EloComparison
           homeTeam={translateTeam(engine.homeTeam)}

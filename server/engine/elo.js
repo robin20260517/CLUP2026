@@ -1,5 +1,6 @@
-// ELO ratings for 2026 World Cup teams (approximate, 2025 baseline)
-const ELO = {
+// ELO ratings — static fallback (2025 baseline)
+// Overridden at runtime by historical_elo.js when WC data loads
+const STATIC_ELO = {
   'Argentina': 2090, 'France': 2030, 'Spain': 2010, 'England': 1990,
   'Brazil': 1980, 'Germany': 1940, 'Portugal': 1920, 'Netherlands': 1900,
   'Belgium': 1875, 'Italy': 1870, 'Croatia': 1855, 'Switzerland': 1870,
@@ -15,43 +16,74 @@ const ELO = {
   'Jordan': 1660, 'New Zealand': 1660, 'Bolivia': 1660, 'Jamaica': 1650,
   'Honduras': 1640, 'Venezuela': 1670, 'South Africa': 1680,
   'El Salvador': 1620, 'Trinidad and Tobago': 1600,
+  'Scotland': 1780, 'Curaçao': 1620, 'Haiti': 1630, 'Bosnia and Herzegovina': 1790,
+  'Norway': 1810, 'Sweden': 1800, 'Congo DR': 1680,
 };
 
 const DEFAULT_ELO = 1700;
 
+// Live ELO table — starts from static, updated by historical_elo on load
+let _elo = { ...STATIC_ELO };
+let _histLoaded = false;
+
+function setHistoricalELO(historicalMap) {
+  // Blend: historical WC ELO scaled to our range, static as floor
+  // Historical ELO starts at 1500, our static starts at 1600-2100
+  // Scale factor: bring historical range into our range
+  const vals = Object.values(historicalMap).filter(v => v > 0);
+  if (!vals.length) return;
+  const histMin = Math.min(...vals);
+  const histMax = Math.max(...vals);
+  const ourMin = 1620;
+  const ourMax = 2100;
+
+  for (const [team, histVal] of Object.entries(historicalMap)) {
+    const normalized = (histVal - histMin) / (histMax - histMin);
+    const scaled = Math.round(ourMin + normalized * (ourMax - ourMin));
+    // Only update if team is relevant to 2026 WC (in static table or known)
+    if (STATIC_ELO[team] !== undefined) {
+      // Blend 60% historical + 40% static to account for recent form
+      _elo[team] = Math.round(scaled * 0.6 + STATIC_ELO[team] * 0.4);
+    }
+  }
+  _histLoaded = true;
+  console.log('[elo] historical ELO applied to', Object.keys(historicalMap).length, 'teams');
+}
+
 function get(teamName) {
   if (!teamName) return DEFAULT_ELO;
-  const direct = ELO[teamName];
+  const direct = _elo[teamName];
   if (direct) return direct;
   const lower = teamName.toLowerCase();
-  const match = Object.entries(ELO).find(([k]) => k.toLowerCase() === lower);
+  const match = Object.entries(_elo).find(([k]) => k.toLowerCase() === lower);
   return match ? match[1] : DEFAULT_ELO;
 }
 
-// Expected win probability using ELO
-// World Cup = neutral ground, homeAdvantage defaults to 0
 function winProb(eloHome, eloAway, homeAdvantage = 0) {
   const diff = eloHome - eloAway + homeAdvantage;
   return 1 / (1 + Math.pow(10, -diff / 400));
 }
 
-// Expected goals based on ELO differential
-// World Cup avg ≈ 1.2 goals per team per game
+// BASE lambda calibrated from historical WC data (updated by wc_data on load)
+let _baseLambda = 1.2;
+
+function setBaseLambda(lambda) {
+  _baseLambda = lambda;
+}
+
 function expectedGoals(eloHome, eloAway) {
-  const BASE = 1.2;
   const ratio = eloHome / eloAway;
-  const homeXG = BASE * Math.pow(ratio, 0.5) * 1.1; // 10% home boost
-  const awayXG = BASE * Math.pow(1 / ratio, 0.5);
+  const homeXG = _baseLambda * Math.pow(ratio, 0.5);
+  const awayXG = _baseLambda * Math.pow(1 / ratio, 0.5);
   return {
     home: Math.max(0.3, Math.min(3.5, homeXG)),
     away: Math.max(0.2, Math.min(3.0, awayXG)),
   };
 }
 
-// SPI approximation from ELO (0-100 scale)
 function spi(elo) {
   const min = 1400, max = 2200;
   return Math.round(((elo - min) / (max - min)) * 100);
 }
 
-module.exports = { get, winProb, expectedGoals, spi, ELO };
+module.exports = { get, winProb, expectedGoals, spi, setHistoricalELO, setBaseLambda, ELO: _elo };
