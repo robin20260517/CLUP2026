@@ -41,8 +41,12 @@ async function buildEngine(fixtureId) {
   const homeTeam = fixture.teams?.home?.name || 'Home';
   const awayTeam = fixture.teams?.away?.name || 'Away';
   const score = fixture.goals || { home: null, away: null };
+  const statusShort = fixture.fixture?.status?.short;
   const minute = fixture.fixture?.status?.elapsed || 0;
-  const isLive = LIVE_STATUSES.has(fixture.fixture?.status?.short);
+  const isLive = LIVE_STATUSES.has(statusShort);
+  const isFT = statusShort === 'FT';
+  // For FT: treat as "frozen at 90'" — stats available, score final
+  const isActiveOrDone = isLive || isFT;
 
   // ELO
   const eloHome = elo.get(homeTeam);
@@ -50,8 +54,8 @@ async function buildEngine(fixtureId) {
   const eloFavorite = eloHome >= eloAway ? 'home' : 'away';
   const eloXG = elo.expectedGoals(eloHome, eloAway);
 
-  // xG
-  const liveXG = (isLive && stats.length > 0) ? approximateXG(stats) : null;
+  // xG — use real stats for live AND finished matches
+  const liveXG = (isActiveOrDone && stats.length > 0) ? approximateXG(stats) : null;
   const xg = liveXG || eloXG;
 
   // Odds: priority → ESPN summary (full DraftKings) → scoreboard odds → ELO-derived
@@ -75,11 +79,13 @@ async function buildEngine(fixtureId) {
   // Module A: MEI — pre-match uses static odds; live uses Bayesian posterior as implied odds
   // posterior not computed yet at this point, so we pass it after bayesian update below
 
-  // Module C/D: Tempo — pass ELO + odds + round for pre-match prediction
+  // Module C/D: Tempo
+  // FT: use final stats (not empty) so it shows live-mode result, not pre-match guess
   const round = fixture.league?.round;
-  const tempo = identifyTempo(stats, score, minute, eloHome, eloAway, oddsInput, round);
+  const ftMinute = isFT ? 90 : minute;
+  const tempo = identifyTempo(stats, score, ftMinute, eloHome, eloAway, oddsInput, round);
 
-  // Prior probabilities: ELO-based (neutral WC ground, no home advantage)
+  // Prior probabilities: ELO-based
   const eloWP = elo.winProb(eloHome, eloAway, 0);
   const eloGap = Math.abs(eloHome - eloAway);
   const drawRate = Math.max(0.16, 0.28 - eloGap * 0.0003);
@@ -93,13 +99,13 @@ async function buildEngine(fixtureId) {
     priorWeight: 100,
   };
 
-  // Bayesian update
-  const posterior = isLive
-    ? updateProbs(prior, { goalsHome: score.home || 0, goalsAway: score.away || 0, xGHome: xg.home, xGAway: xg.away, minuteElapsed: minute })
+  // Bayesian update — also run for FT so MEI/edge reflect final score
+  const posterior = isActiveOrDone
+    ? updateProbs(prior, { goalsHome: score.home || 0, goalsAway: score.away || 0, xGHome: xg.home, xGAway: xg.away, minuteElapsed: ftMinute })
     : prior;
 
-  // Module A: MEI — now uses posterior as live implied odds so it reacts to goals
-  const mei = calculateMEI(fixture, oddsInput, { favorite: eloFavorite }, championOdds, isLive ? posterior : null, minute);
+  // Module A: MEI — pass posterior for live AND finished matches
+  const mei = calculateMEI(fixture, oddsInput, { favorite: eloFavorite }, championOdds, isActiveOrDone ? posterior : null, ftMinute);
 
   // Snapshot mechanism: capture stats AT minute 15 (locked for Module E only)
   const snap15Key = `snap:15:${fixtureId}`;
@@ -108,22 +114,25 @@ async function buildEngine(fixtureId) {
   }
   const snap15 = cache.get(snap15Key);
 
-  // Module E: 15-min discriminator — locked at minute-15 snapshot
-  const fifteenMin = isLive
+  // Module E: 15-min discriminator — only meaningful during/after live match
+  const fifteenMin = isActiveOrDone
     ? identify15Min(
         snap15?.stats ?? stats,
         snap15?.score ?? score,
-        snap15?.minute ?? minute,
-        minute,
+        snap15?.minute ?? ftMinute,
+        ftMinute,
       )
     : null;
 
   // Module F: Score Zone
-  // Live → continuous Poisson remaining-time model (updates every 60s, no lock)
+  // Live → continuous Poisson remaining-time model
+  // FT  → Poisson at minute 90 (remaining=0 → only current score survives = 100%)
   // Pre-match → static DK O/U + xG prediction
   const scoreZone = isLive
     ? liveScoreZone(score, xg, minute)
-    : getScoreZone([], score, 0, xg, oddsInput, round, 0);
+    : isFT
+      ? liveScoreZone(score, xg, 90)
+      : getScoreZone([], score, 0, xg, oddsInput, round, 0);
 
   // Module G: Three-way Live Edge
   const edge = threeWayEdge(posterior, oddsInput, minute, tempo.currentState);
@@ -210,8 +219,7 @@ async function buildEngine(fixtureId) {
   };
 
   // Update live ELO when match is finished
-  const statusShort = fixture.fixture?.status?.short;
-  if (statusShort === 'FT' && score.home !== null && score.away !== null) {
+  if (isFT && score.home !== null && score.away !== null) {
     elo.updateFromResult(homeTeam, awayTeam, score.home, score.away, fixtureId);
   }
 

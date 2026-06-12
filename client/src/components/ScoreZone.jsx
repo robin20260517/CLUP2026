@@ -19,13 +19,18 @@ export default function ScoreZone({ scoreZone }) {
 
   const cfg = ZONE_CONFIG[zone] || ZONE_CONFIG.B;
 
+  const isFTState = isLive && remainingMinutes === 0;
+
   let badgeClass, badgeText;
-  if (isLive) {
+  if (isFTState) {
+    badgeClass = 'bg-zinc-700/50 border-zinc-600 text-zinc-400';
+    badgeText = '全场终局';
+  } else if (isLive) {
     const urgent = remainingMinutes <= 20;
     badgeClass = urgent
       ? 'bg-red-500/10 border-red-500/20 text-red-400'
       : 'bg-brand-500/10 border-brand-500/20 text-brand-400';
-    badgeText = remainingMinutes > 0 ? `剩余 ${remainingMinutes}'` : '全场结束';
+    badgeText = `剩余 ${remainingMinutes}'`;
   } else if (pending) {
     badgeClass = 'bg-amber-500/10 border-amber-500/20 text-amber-400';
     badgeText = `待确认 (${pendingMinute}')`;
@@ -34,10 +39,12 @@ export default function ScoreZone({ scoreZone }) {
     badgeText = '赛前预测';
   }
 
-  const title = isLive ? '实时终局预测' : '赛前区间预测';
-  const subtitle = isLive
-    ? `模块 F · ${minute}'实时泊松 · 当前 ${currentScore}`
-    : '模块 F · DraftKings O/U + xG';
+  const title = isFTState ? '终局确认' : isLive ? '实时终局预测' : '赛前区间预测';
+  const subtitle = isFTState
+    ? `模块 F · 全场结束 · 终局 ${currentScore}`
+    : isLive
+      ? `模块 F · ${minute}'实时泊松 · 当前 ${currentScore}`
+      : '模块 F · DraftKings O/U + xG';
 
   return (
     <div className="card p-5">

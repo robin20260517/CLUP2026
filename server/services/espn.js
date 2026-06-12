@@ -229,8 +229,8 @@ async function fetchFixtureById(espnId) {
     if (fresh) fixture = { ...fresh };
   }
 
-  // If live, fetch summary for stats
-  if (['1H', 'HT', '2H', 'ET', 'P'].includes(fixture.fixture.status.short)) {
+  // Fetch summary for stats: live AND finished matches (FT needs final box score)
+  if (['1H', 'HT', '2H', 'ET', 'P', 'FT'].includes(fixture.fixture.status.short)) {
     try {
       const { data } = await axios.get(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.WORLD/summary`, {
         params: { event: espnId },
