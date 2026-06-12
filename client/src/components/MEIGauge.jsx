@@ -13,6 +13,8 @@ const COMP_LABELS = {
   tournamentPressure: '赛程压力',
   marketCrowding: '盘口拥挤',
   narrativeConsensus: '叙事一致',
+  edgeComponent: '模型偏差',
+  poissonVsOU: '泊松偏差',
   liveTension: '实时张力',
 };
 

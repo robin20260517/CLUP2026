@@ -104,8 +104,8 @@ async function buildEngine(fixtureId) {
     ? updateProbs(prior, { goalsHome: score.home || 0, goalsAway: score.away || 0, xGHome: xg.home, xGAway: xg.away, minuteElapsed: ftMinute })
     : prior;
 
-  // Module A: MEI — pass posterior, eloGap, and live score for responsive scoring
-  const mei = calculateMEI(fixture, oddsInput, { favorite: eloFavorite, eloGap }, championOdds, isActiveOrDone ? posterior : null, ftMinute, isActiveOrDone ? score : null);
+  // Module A: MEI — pass prior (for edge signal), eloGap, live score and xg
+  const mei = calculateMEI(fixture, oddsInput, { favorite: eloFavorite, eloGap, prior }, championOdds, isActiveOrDone ? posterior : null, ftMinute, isActiveOrDone ? score : null, xg);
 
   // Snapshot mechanism: capture stats AT minute 15 (locked for Module E only)
   const snap15Key = `snap:15:${fixtureId}`;
