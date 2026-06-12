@@ -353,11 +353,14 @@ async function fetchSummary(espnId) {
     const lineup = extractLineup(data.rosters);
 
     const result = { h2h, odds, lineup };
-    // TTL: H2H data is stable, but odds + lineup change on match day
-    cache.set(cacheKey, { data: result }, 3600);
+    // H2H is stable (24h), but lineup is only published ~60min before kickoff.
+    // When lineup is null: short TTL so we retry soon after it's published.
+    // When lineup is confirmed: longer TTL, no need to re-fetch often.
+    const ttl = lineup ? 1800 : 300;
+    cache.set(cacheKey, { data: result }, ttl);
     return result;
   } catch (_) {
-    cache.set(cacheKey, { data: null }, 1800);
+    cache.set(cacheKey, { data: null }, 300);
     return null;
   }
 }
