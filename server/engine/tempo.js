@@ -110,15 +110,19 @@ function approximateXG(stats) {
   const homeStats = stats[0]?.statistics || [];
   const awayStats = stats[1]?.statistics || [];
 
-  const getStat = (arr, type) => {
-    const s = arr.find(s => s.type === type);
-    return parseFloat(s?.value || 0) || 0;
+  // ESPN uses camelCase internally; also accept human-readable label fallbacks
+  const getStat = (arr, ...names) => {
+    for (const name of names) {
+      const s = arr.find(s => s.type?.toLowerCase() === name.toLowerCase());
+      if (s) return parseFloat(s.value || 0) || 0;
+    }
+    return 0;
   };
 
-  const homeShotsOn = getStat(homeStats, 'Shots on Goal');
-  const awayShotsOn = getStat(awayStats, 'Shots on Goal');
-  const homeShotsTotal = getStat(homeStats, 'Total Shots') || homeShotsOn * 2;
-  const awayShotsTotal = getStat(awayStats, 'Total Shots') || awayShotsOn * 2;
+  const homeShotsOn    = getStat(homeStats, 'shotsOnTarget', 'Shots on Goal', 'shotsOnGoal');
+  const awayShotsOn    = getStat(awayStats, 'shotsOnTarget', 'Shots on Goal', 'shotsOnGoal');
+  const homeShotsTotal = getStat(homeStats, 'shots', 'Total Shots', 'totalshots') || homeShotsOn * 2;
+  const awayShotsTotal = getStat(awayStats, 'shots', 'Total Shots', 'totalshots') || awayShotsOn * 2;
 
   return {
     home: parseFloat(Math.max(0.1, homeShotsOn * 0.33 + (homeShotsTotal - homeShotsOn) * 0.05).toFixed(2)),
@@ -132,18 +136,21 @@ function detectState(stats, score, minute) {
   const homeStats = stats[0]?.statistics || [];
   const awayStats = stats[1]?.statistics || [];
 
-  const getStat = (arr, type) => {
-    const s = arr.find(s => s.type === type);
-    return parseFloat(s?.value || 0) || 0;
+  const getStat = (arr, ...names) => {
+    for (const name of names) {
+      const s = arr.find(s => s.type?.toLowerCase() === name.toLowerCase());
+      if (s) return parseFloat(s.value || 0) || 0;
+    }
+    return 0;
   };
 
-  const homePoss = getStat(homeStats, 'Ball Possession');
-  const homeShotsOn = getStat(homeStats, 'Shots on Goal');
-  const awayShotsOn = getStat(awayStats, 'Shots on Goal');
-  const homeRed = getStat(homeStats, 'Red Cards');
-  const awayRed = getStat(awayStats, 'Red Cards');
-  const homeYellow = getStat(homeStats, 'Yellow Cards');
-  const awayYellow = getStat(awayStats, 'Yellow Cards');
+  const homePoss    = getStat(homeStats, 'possessionPct', 'Ball Possession', 'possession');
+  const homeShotsOn = getStat(homeStats, 'shotsOnTarget', 'Shots on Goal', 'shotsOnGoal');
+  const awayShotsOn = getStat(awayStats, 'shotsOnTarget', 'Shots on Goal', 'shotsOnGoal');
+  const homeRed     = getStat(homeStats, 'redCards', 'Red Cards');
+  const awayRed     = getStat(awayStats, 'redCards', 'Red Cards');
+  const homeYellow  = getStat(homeStats, 'yellowCards', 'Yellow Cards');
+  const awayYellow  = getStat(awayStats, 'yellowCards', 'Yellow Cards');
   const scoreDiff = Math.abs((score?.home || 0) - (score?.away || 0));
   const totalShots = homeShotsOn + awayShotsOn;
   const dominating = homePoss > 65 || homePoss < 35;
@@ -294,14 +301,23 @@ function nextStateProbs(currentState, minute, score) {
   const late = minute > 70;
 
   const T = {
-    STATE_FREEZE: { STATE_FREEZE: late ? 0.25 : 0.40, STATE_CONTROL: 0.25, STATE_TUG: 0.25, STATE_BREAK: 0.05, STATE_CHAOS: late ? 0.05 : 0.02 },
-    STATE_CONTROL: { STATE_FREEZE: 0.15, STATE_CONTROL: 0.35, STATE_TUG: 0.25, STATE_BREAK: scoreDiff >= 2 ? 0.20 : 0.10, STATE_CHAOS: late ? 0.10 : 0.05 },
-    STATE_TUG: { STATE_FREEZE: 0.10, STATE_CONTROL: 0.20, STATE_TUG: 0.35, STATE_BREAK: 0.25, STATE_CHAOS: late ? 0.10 : 0.05 },
-    STATE_BREAK: { STATE_FREEZE: 0.05, STATE_CONTROL: 0.25, STATE_TUG: 0.30, STATE_BREAK: 0.25, STATE_CHAOS: late ? 0.15 : 0.08 },
-    STATE_CHAOS: { STATE_FREEZE: 0.05, STATE_CONTROL: 0.10, STATE_TUG: 0.20, STATE_BREAK: 0.30, STATE_CHAOS: 0.35 },
+    STATE_FREEZE:  { STATE_FREEZE: late ? 0.25 : 0.40, STATE_CONTROL: 0.25, STATE_TUG: 0.25, STATE_BREAK: 0.05, STATE_CHAOS: late ? 0.05 : 0.02 },
+    STATE_CONTROL: { STATE_FREEZE: 0.15, STATE_CONTROL: 0.35, STATE_TUG: 0.25, STATE_BREAK: scoreDiff >= 2 ? 0.20 : 0.15, STATE_CHAOS: late ? 0.10 : 0.05 },
+    STATE_TUG:     { STATE_FREEZE: 0.10, STATE_CONTROL: 0.20, STATE_TUG: 0.35, STATE_BREAK: 0.25, STATE_CHAOS: late ? 0.10 : 0.05 },
+    STATE_BREAK:   { STATE_FREEZE: 0.05, STATE_CONTROL: 0.22, STATE_TUG: 0.30, STATE_BREAK: 0.25, STATE_CHAOS: late ? 0.18 : 0.10 },
+    STATE_CHAOS:   { STATE_FREEZE: 0.05, STATE_CONTROL: 0.10, STATE_TUG: 0.20, STATE_BREAK: 0.30, STATE_CHAOS: 0.35 },
   };
 
-  return T[currentState] || null;
+  const raw = T[currentState];
+  if (!raw) return null;
+
+  // Normalize so values always sum exactly to 1.0
+  const total = Object.values(raw).reduce((s, v) => s + v, 0);
+  const result = {};
+  for (const [k, v] of Object.entries(raw)) {
+    result[k] = parseFloat((v / total).toFixed(3));
+  }
+  return result;
 }
 
 module.exports = {

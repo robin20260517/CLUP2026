@@ -153,11 +153,11 @@ export default function MatchDetail() {
             {translateModel(engine.tempo_model)}
           </span>
           <span className="badge bg-zinc-800 border border-zinc-700 text-zinc-400">
-            xG {engine.xg?.home} – {engine.xg?.away}
+            xG {Number(engine.xg?.home).toFixed(2)} – {Number(engine.xg?.away).toFixed(2)}
           </span>
-          {engine.thirty_min && (
+          {engine.score_zone && (
             <span className="badge bg-brand-500/10 border border-brand-500/20 text-brand-400">
-              {engine.thirty_min.label} · {engine.thirty_min.description}
+              {engine.score_zone.label} · {engine.score_zone.confidence}%
             </span>
           )}
         </div>

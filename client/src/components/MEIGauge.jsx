@@ -18,6 +18,13 @@ const COMP_LABELS = {
   liveTension: '实时张力',
 };
 
+// Per-component theoretical max — bars fill to 100% only at true maximum
+const COMP_MAX = {
+  heat: 15, motivationGap: 15, tournamentPressure: 18,
+  marketCrowding: 12, narrativeConsensus: 10,
+  edgeComponent: 15, poissonVsOU: 10, liveTension: 10,
+};
+
 export default function MEIGauge({ score = 0, level, risk, trend, components }) {
   const cfg = LEVEL_CONFIG[level] || LEVEL_CONFIG['结构博弈局'];
   const pct = score / 100;
@@ -85,7 +92,8 @@ export default function MEIGauge({ score = 0, level, risk, trend, components }) 
         <div className="space-y-2">
           {Object.entries(components).map(([key, val]) => {
             const isNeg = val < 0;
-            const barPct = Math.min(100, Math.max(0, (Math.abs(val) / 20) * 100));
+            const compMax = COMP_MAX[key] || 20;
+            const barPct = Math.min(100, Math.max(0, (Math.abs(val) / compMax) * 100));
             const barColor = isNeg ? '#71717a' : cfg.color;
             return (
               <div key={key} className="flex items-center gap-2">

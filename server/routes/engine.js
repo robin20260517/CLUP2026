@@ -131,7 +131,7 @@ async function buildEngine(fixtureId) {
   const scoreZone = isLive
     ? liveScoreZone(score, xg, minute)
     : isFT
-      ? liveScoreZone(score, xg, 90)
+      ? liveScoreZone(score, xg, 96)  // 96 > effectiveTotal(95) → remaining=0 → 全场终局
       : getScoreZone([], score, 0, xg, oddsInput, round, 0);
 
   // Module G: Three-way Live Edge — pass score and isFT for proper context
