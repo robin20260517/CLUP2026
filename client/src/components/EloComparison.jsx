@@ -10,7 +10,7 @@ export default function EloComparison({ homeTeam, awayTeam, elo, xg, probs }) {
     <div className="card p-5">
       <div className="mb-4">
         <h3 className="font-display font-semibold text-zinc-100 text-sm">实力对比</h3>
-        <p className="text-xs text-zinc-500 mt-0.5">ELO · SPI · xG</p>
+        <p className="text-xs text-zinc-500 mt-0.5">ELO 评级 · SPI 实力 · xG 预期进球</p>
       </div>
 
       {/* ELO bar */}

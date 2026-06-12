@@ -11,13 +11,13 @@ import EloComparison from '../components/EloComparison';
 import ScoreZone from '../components/ScoreZone';
 import H2HHistory from '../components/H2HHistory';
 import { ArrowLeft, RefreshCw, Clock } from 'lucide-react';
-
-const MODEL_ZH = {
-  'Freeze Model': '冻结模型',
-  'Tug-of-War Model': '拉锯模型',
-  'Broken Game Model': '破局模型',
-  'Expectation Trap Model': '期望陷阱模型',
-};
+import {
+  formatMatchDateTime,
+  translateModel,
+  translateRound,
+  translateStatus,
+  translateTeam,
+} from '../utils/display';
 
 function Skeleton({ className = '' }) {
   return <div className={`rounded-xl shimmer ${className}`} />;
@@ -94,7 +94,7 @@ export default function MatchDetail() {
       {/* Match header */}
       <div className="card p-6">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-zinc-500">{engine.round}</span>
+          <span className="text-xs text-zinc-500">{translateRound(engine.round)}</span>
           <div className="flex items-center gap-2">
             {isLive ? (
               <span className="badge bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
@@ -104,7 +104,7 @@ export default function MatchDetail() {
             ) : (
               <span className="flex items-center gap-1 text-xs text-zinc-500">
                 <Clock size={11} />
-                {engine.date ? new Date(engine.date).toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }) : '--'}
+                {formatMatchDateTime(engine.date)} · 亚美尼亚时间
               </span>
             )}
           </div>
@@ -112,7 +112,7 @@ export default function MatchDetail() {
 
         <div className="flex items-center justify-center gap-8 py-4">
           <div className="text-center flex-1">
-            <p className="font-display font-bold text-2xl text-zinc-100">{engine.homeTeam}</p>
+            <p className="font-display font-bold text-2xl text-zinc-100">{translateTeam(engine.homeTeam)}</p>
             <p className="text-xs text-zinc-500 mt-1">ELO {engine.elo?.home}</p>
           </div>
 
@@ -123,16 +123,16 @@ export default function MatchDetail() {
                   {engine.score?.home ?? 0} – {engine.score?.away ?? 0}
                 </p>
                 {engine.status?.short === 'FT' && (
-                  <p className="text-xs text-zinc-500 mt-1">FT</p>
+                  <p className="text-xs text-zinc-500 mt-1">{translateStatus(engine.status?.short)}</p>
                 )}
               </div>
             ) : (
-              <p className="font-display text-2xl text-zinc-600 font-semibold">VS</p>
+              <p className="font-display text-2xl text-zinc-600 font-semibold">对阵</p>
             )}
           </div>
 
           <div className="text-center flex-1">
-            <p className="font-display font-bold text-2xl text-zinc-100">{engine.awayTeam}</p>
+            <p className="font-display font-bold text-2xl text-zinc-100">{translateTeam(engine.awayTeam)}</p>
             <p className="text-xs text-zinc-500 mt-1">ELO {engine.elo?.away}</p>
           </div>
         </div>
@@ -143,7 +143,7 @@ export default function MatchDetail() {
             MEI {engine.mei_score} · {engine.mei_level}
           </span>
           <span className="badge bg-zinc-800 border border-zinc-700 text-zinc-300">
-            {engine.tempo_model}
+            {translateModel(engine.tempo_model)}
           </span>
           <span className="badge bg-zinc-800 border border-zinc-700 text-zinc-400">
             xG {engine.xg?.home} – {engine.xg?.away}
@@ -192,12 +192,12 @@ export default function MatchDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <H2HHistory
           h2h={engine.h2h}
-          homeTeam={engine.homeTeam}
-          awayTeam={engine.awayTeam}
+          homeTeam={translateTeam(engine.homeTeam)}
+          awayTeam={translateTeam(engine.awayTeam)}
         />
         <EloComparison
-          homeTeam={engine.homeTeam}
-          awayTeam={engine.awayTeam}
+          homeTeam={translateTeam(engine.homeTeam)}
+          awayTeam={translateTeam(engine.awayTeam)}
           elo={engine.elo}
           xg={engine.xg}
           probs={engine.probs_prior}
@@ -210,7 +210,7 @@ export default function MatchDetail() {
           <div className="flex items-start justify-between mb-3">
             <div>
               <h2 className="font-display font-semibold text-zinc-100">15分钟节奏判别</h2>
-              <p className="text-xs text-zinc-500 mt-0.5">Module E · 滚球快照</p>
+              <p className="text-xs text-zinc-500 mt-0.5">模块 E · 实时快照</p>
             </div>
             {engine.fifteen_min?.locked ? (
               <span className="badge bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
@@ -233,7 +233,7 @@ export default function MatchDetail() {
             <div className="space-y-2">
               <p className="text-xs text-amber-400">早期信号（{engine.fifteen_min.currentMinute}'，未锁定）</p>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-400">{MODEL_ZH[engine.fifteen_min.earlyModel] || engine.fifteen_min.earlyModel}</span>
+                <span className="text-sm text-zinc-400">{translateModel(engine.fifteen_min.earlyModel)}</span>
                 <span className="font-mono text-zinc-500">{engine.fifteen_min.earlyConfidence}%</span>
               </div>
             </div>
@@ -242,7 +242,7 @@ export default function MatchDetail() {
           {engine.fifteen_min?.confirmed && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-100 font-medium">{MODEL_ZH[engine.fifteen_min.label] || engine.fifteen_min.label}</span>
+                <span className="text-sm text-zinc-100 font-medium">{translateModel(engine.fifteen_min.label)}</span>
                 <span className="font-mono text-brand-400 font-medium">{engine.fifteen_min.confidence}%</span>
               </div>
               {engine.fifteen_min.halfTimeZone && (
@@ -267,7 +267,7 @@ export default function MatchDetail() {
 
       {/* H/I/J: Matrix trio */}
       <div>
-        <SectionHeader label="概率矩阵" sub="Modules H · I · J" />
+        <SectionHeader label="概率矩阵" sub="模块 H · I · J" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <ScoreMatrix scores={engine.score_matrix} />
           <OUMatrix ou={engine.ou_matrix} />
@@ -277,8 +277,8 @@ export default function MatchDetail() {
 
       {/* Footer */}
       <div className="text-center text-xs text-zinc-600 pb-4">
-        数据更新：{engine.updated ? new Date(engine.updated).toLocaleString('zh-CN') : '--'} ·
-        {isLive ? ' 实时模式（60s 刷新）' : ' 非实时模式（5min 刷新）'}
+        数据更新：{formatMatchDateTime(engine.updated)}（亚美尼亚时间） ·
+        {isLive ? ' 实时模式（60秒刷新）' : ' 非实时模式（5分钟刷新）'}
         · 仅供学习参考，不构成投注建议
       </div>
     </div>

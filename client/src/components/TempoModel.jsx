@@ -33,7 +33,7 @@ export default function TempoModel({ model, confidence, reason, currentState, ne
       <div className="flex items-start justify-between">
         <div>
           <h3 className="font-display font-semibold text-zinc-100 text-sm">节奏模型</h3>
-          <p className="text-xs text-zinc-500 mt-0.5">Tempo Model · Module C</p>
+          <p className="text-xs text-zinc-500 mt-0.5">节奏判别 · 模块 C</p>
         </div>
         {/* Mode badge */}
         <span className={`badge border text-xs ${
@@ -76,7 +76,7 @@ export default function TempoModel({ model, confidence, reason, currentState, ne
       {/* Live: state machine */}
       {!isPreMatch && (
         <div>
-          <p className="text-xs text-zinc-500 mb-2 font-medium">当前状态机 · Module D</p>
+          <p className="text-xs text-zinc-500 mb-2 font-medium">当前状态机 · 模块 D</p>
           <div className="flex items-center gap-1.5 flex-wrap">
             {Object.entries(STATE_LABELS).map(([key, cfg]) => (
               <div key={key}

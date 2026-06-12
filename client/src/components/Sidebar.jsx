@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Calendar, Activity, Zap } from 'lucide-react';
 import { useLiveStatus } from '../hooks/useRefresh';
+import { translateTeam } from '../utils/display';
 
 const navItems = [
   { to: '/dashboard', label: '主控台', icon: LayoutDashboard },
@@ -20,8 +21,8 @@ export default function Sidebar() {
             <Zap size={16} />
           </div>
           <div>
-            <div className="font-display font-semibold text-sm text-zinc-100 leading-tight">WC Quant</div>
-            <div className="text-xs text-zinc-500">Engine 2026</div>
+            <div className="font-display font-semibold text-sm text-zinc-100 leading-tight">世界杯量化</div>
+            <div className="text-xs text-zinc-500">引擎 2026</div>
           </div>
         </div>
       </div>
@@ -67,7 +68,7 @@ export default function Sidebar() {
               className="block px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors"
             >
               <div className="text-xs text-zinc-300 font-medium truncate">
-                {m.homeTeam} <span className="text-brand-400 font-mono">{m.score?.home ?? '-'}-{m.score?.away ?? '-'}</span> {m.awayTeam}
+                {translateTeam(m.homeTeam)} <span className="text-brand-400 font-mono">{m.score?.home ?? '-'}-{m.score?.away ?? '-'}</span> {translateTeam(m.awayTeam)}
               </div>
               <div className="text-xs text-zinc-500 mt-0.5 flex items-center gap-1">
                 <Activity size={10} className="text-emerald-400" />

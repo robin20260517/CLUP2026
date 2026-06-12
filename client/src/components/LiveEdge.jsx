@@ -86,7 +86,7 @@ export default function LiveEdge({ rating = 'D', edge, label, priorProbs, poster
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="font-display font-semibold text-zinc-100 text-sm">滚球优势</h3>
-          <p className="text-xs text-zinc-500 mt-0.5">Live Edge · Module G · 三路凯利</p>
+          <p className="text-xs text-zinc-500 mt-0.5">实时优势 · 模块 G · 三路凯利</p>
         </div>
         {threeWay?.best && (
           <div className="text-right">
@@ -112,7 +112,7 @@ export default function LiveEdge({ rating = 'D', edge, label, priorProbs, poster
               推荐方向：{threeWay.best.label}
             </span>
             <span className="font-mono text-xs text-zinc-400 ml-2">
-              +{threeWay.best.edge}% Kelly
+              +{threeWay.best.edge}% 凯利
             </span>
           </div>
         </div>
@@ -150,7 +150,7 @@ export default function LiveEdge({ rating = 'D', edge, label, priorProbs, poster
               <div className="flex items-center gap-1 mt-0.5">
                 <Zap size={12} style={{ color: cfg.color }} />
                 <span className="font-mono text-sm" style={{ color: cfg.color }}>
-                  {edge > 0 ? '+' : ''}{edge}% Kelly
+                  {edge > 0 ? '+' : ''}{edge}% 凯利
                 </span>
               </div>
             )}

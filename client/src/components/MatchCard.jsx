@@ -1,5 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { Clock, TrendingUp, Zap } from 'lucide-react';
+import {
+  formatMatchDateTime,
+  translateModel,
+  translateRound,
+  translateTeam,
+} from '../utils/display';
 
 const MEI_COLORS = {
   '市场有效局': 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
@@ -15,17 +21,11 @@ const EDGE_COLORS = {
   'D':  'text-zinc-500 bg-zinc-800/20 border-zinc-800',
 };
 
-function formatDate(dateStr) {
-  if (!dateStr) return '--';
-  const d = new Date(dateStr);
-  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
 export default function MatchCard({ fixture, engine }) {
   const navigate = useNavigate();
   const id = fixture?.fixture?.id;
-  const homeTeam = fixture?.teams?.home?.name || 'Home';
-  const awayTeam = fixture?.teams?.away?.name || 'Away';
+  const homeTeam = translateTeam(fixture?.teams?.home?.name);
+  const awayTeam = translateTeam(fixture?.teams?.away?.name);
   const homeLogo = fixture?.teams?.home?.logo;
   const awayLogo = fixture?.teams?.away?.logo;
   const score = fixture?.goals;
@@ -45,7 +45,7 @@ export default function MatchCard({ fixture, engine }) {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-zinc-500">{round}</span>
+        <span className="text-xs text-zinc-500">{translateRound(round)}</span>
         <div className="flex items-center gap-1.5">
           {isLive ? (
             <span className="badge bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
@@ -55,7 +55,7 @@ export default function MatchCard({ fixture, engine }) {
           ) : (
             <span className="flex items-center gap-1 text-xs text-zinc-500">
               <Clock size={11} />
-              {formatDate(date)}
+              {formatMatchDateTime(date)}
             </span>
           )}
         </div>
@@ -74,7 +74,7 @@ export default function MatchCard({ fixture, engine }) {
               {score?.home ?? 0} – {score?.away ?? 0}
             </span>
           ) : (
-            <span className="text-zinc-600 text-sm font-medium">VS</span>
+            <span className="text-zinc-600 text-sm font-medium">对阵</span>
           )}
         </div>
 
@@ -101,7 +101,7 @@ export default function MatchCard({ fixture, engine }) {
           {tempoModel && (
             <span className="badge bg-zinc-800 border border-zinc-700 text-zinc-400 truncate max-w-[120px]">
               <TrendingUp size={10} />
-              <span className="truncate">{tempoModel}</span>
+              <span className="truncate">{translateModel(tempoModel)}</span>
             </span>
           )}
         </div>

@@ -2,6 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Calendar, ChevronRight, Flag } from 'lucide-react';
+import {
+  formatMatchDate,
+  formatMatchTime,
+  isTodayInYerevan,
+  translateRound,
+  translateStatus,
+  translateTeam,
+} from '../utils/display';
 
 const LIVE_STATUSES = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE']);
 const FINISHED = new Set(['FT', 'AET', 'PEN']);
@@ -10,18 +18,6 @@ const ROUND_ORDER = [
   'Group Stage - 1', 'Group Stage - 2', 'Group Stage - 3',
   'Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', '3rd Place Final', 'Final',
 ];
-
-const STAGE_LABEL = {
-  'Group Stage - 1': '小组赛 第1轮',
-  'Group Stage - 2': '小组赛 第2轮',
-  'Group Stage - 3': '小组赛 第3轮',
-  'Round of 32': '32强赛',
-  'Round of 16': '16强赛',
-  'Quarter-finals': '四分之一决赛',
-  'Semi-finals': '半决赛',
-  '3rd Place Final': '季军赛',
-  'Final': '决赛',
-};
 
 function StatusBadge({ status }) {
   const s = status?.short;
@@ -33,7 +29,7 @@ function StatusBadge({ status }) {
       </span>
     );
   }
-  if (FINISHED.has(s)) return <span className="badge bg-zinc-800 border border-zinc-700 text-zinc-400">完赛</span>;
+  if (FINISHED.has(s)) return <span className="badge bg-zinc-800 border border-zinc-700 text-zinc-400">{translateStatus(s)}</span>;
   return null;
 }
 
@@ -67,8 +63,6 @@ export default function Schedule() {
     return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
   });
 
-  const today = new Date().toDateString();
-
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -93,7 +87,7 @@ export default function Schedule() {
             完整赛程
           </h1>
           <p className="text-zinc-500 text-sm mt-1">
-            2026 FIFA World Cup · 美国 / 加拿大 / 墨西哥主办 · 共 {fixtures.length} 场
+            2026 FIFA 世界杯 · 美国 / 加拿大 / 墨西哥主办 · 共 {fixtures.length} 场
           </p>
         </div>
         <div className="flex gap-1.5 flex-wrap justify-end">
@@ -106,7 +100,7 @@ export default function Schedule() {
       {/* Round sections */}
       {sortedRounds.map(round => {
         const roundFixtures = groups[round];
-        const label = STAGE_LABEL[round] || round;
+        const label = translateRound(round);
 
         return (
           <div key={round}>
@@ -127,14 +121,10 @@ export default function Schedule() {
                 const isLive = LIVE_STATUSES.has(status?.short);
                 const isFinished = FINISHED.has(status?.short);
                 const score = f.goals;
-                const dateObj = f.fixture?.date ? new Date(f.fixture.date) : null;
-                const isToday = dateObj?.toDateString() === today;
-                const dateStr = dateObj
-                  ? dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-                  : '--';
-                const timeStr = dateObj
-                  ? dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-                  : '--:--';
+                const dateValue = f.fixture?.date;
+                const isToday = dateValue ? isTodayInYerevan(dateValue) : false;
+                const dateStr = formatMatchDate(dateValue);
+                const timeStr = formatMatchTime(dateValue);
 
                 return (
                   <button
@@ -155,7 +145,7 @@ export default function Schedule() {
                       ) : (
                         <div>
                           <div className={`text-xs font-mono ${isFinished ? 'text-zinc-500' : isToday ? 'text-brand-400' : 'text-zinc-400'}`}>
-                            {isFinished ? 'FT' : timeStr}
+                            {isFinished ? translateStatus(status?.short) : timeStr}
                           </div>
                           <div className="text-xs text-zinc-600 mt-0.5">{dateStr}</div>
                         </div>
@@ -169,7 +159,7 @@ export default function Schedule() {
                           onError={e => { e.target.style.display = 'none'; }} />
                       )}
                       <span className={`font-medium text-sm truncate ${isLive ? 'text-zinc-100' : 'text-zinc-200'}`}>
-                        {f.teams?.home?.name}
+                        {translateTeam(f.teams?.home?.name)}
                       </span>
                     </div>
 
@@ -180,14 +170,14 @@ export default function Schedule() {
                           {score?.home ?? 0} – {score?.away ?? 0}
                         </span>
                       ) : (
-                        <span className="text-zinc-600 text-xs">vs</span>
+                        <span className="text-zinc-600 text-xs">对阵</span>
                       )}
                     </div>
 
                     {/* Away team */}
                     <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
                       <span className={`font-medium text-sm truncate text-right ${isLive ? 'text-zinc-100' : 'text-zinc-200'}`}>
-                        {f.teams?.away?.name}
+                        {translateTeam(f.teams?.away?.name)}
                       </span>
                       {f.teams?.away?.logo && (
                         <img src={f.teams.away.logo} alt="" className="w-6 h-6 object-contain shrink-0"

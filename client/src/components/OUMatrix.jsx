@@ -5,15 +5,15 @@ export default function OUMatrix({ ou = [] }) {
     <div className="card p-5">
       <div className="mb-4">
         <h3 className="font-display font-semibold text-zinc-100 text-sm">大小球矩阵</h3>
-        <p className="text-xs text-zinc-500 mt-0.5">Over / Under</p>
+        <p className="text-xs text-zinc-500 mt-0.5">进球数大小盘</p>
       </div>
 
       <div className="space-y-2">
         {/* Header */}
         <div className="grid grid-cols-3 text-xs text-zinc-500 pb-1 border-b border-zinc-800">
           <span>盘口</span>
-          <span className="text-center text-brand-400">大球 Over</span>
-          <span className="text-right">小球 Under</span>
+          <span className="text-center text-brand-400">大球</span>
+          <span className="text-right">小球</span>
         </div>
 
         {ou.map(row => {

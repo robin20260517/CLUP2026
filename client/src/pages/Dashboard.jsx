@@ -97,7 +97,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="font-display font-bold text-2xl text-zinc-100">世界杯量化引擎</h1>
-        <p className="text-zinc-500 text-sm mt-1">2026 FIFA World Cup · USA / Canada / Mexico</p>
+        <p className="text-zinc-500 text-sm mt-1">2026 FIFA 世界杯 · 美国 / 加拿大 / 墨西哥</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

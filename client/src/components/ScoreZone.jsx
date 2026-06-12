@@ -30,10 +30,10 @@ export default function ScoreZone({ scoreZone }) {
 
   const title = locked ? '30分钟确认模型' : pending ? '区间预测（待确认）' : isPreMatch ? '赛前区间预测' : '30分钟确认模型';
   const subtitle = locked
-    ? `Module F · 第${snapMinute}'快照锁定`
+    ? `模块 F · 第${snapMinute}'快照锁定`
     : pending
-    ? `Module F · 第30分钟确认前（${pendingMinute}'）`
-    : isPreMatch ? '赛前区间预测 · Module F' : `Module F · 第${snapMinute || currentMinute}'确认`;
+    ? `模块 F · 第30分钟确认前（${pendingMinute}'）`
+    : isPreMatch ? '赛前区间预测 · 模块 F' : `模块 F · 第${snapMinute || currentMinute}'确认`;
 
   return (
     <div className="card p-5">

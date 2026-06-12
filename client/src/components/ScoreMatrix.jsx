@@ -9,7 +9,7 @@ export default function ScoreMatrix({ scores = [] }) {
     <div className="card p-5">
       <div className="mb-4">
         <h3 className="font-display font-semibold text-zinc-100 text-sm">波胆矩阵</h3>
-        <p className="text-xs text-zinc-500 mt-0.5">Correct Score · Top 10</p>
+        <p className="text-xs text-zinc-500 mt-0.5">波胆概率 · 前 10 名</p>
       </div>
 
       <div className="space-y-1.5">

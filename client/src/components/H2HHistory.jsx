@@ -1,19 +1,20 @@
 import { Trophy, Minus, X } from 'lucide-react';
+import { translateCompetition, translateRound } from '../utils/display';
 
 function ResultBadge({ result }) {
   if (result === 'W') return (
     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-bold bg-emerald-500/15 border border-emerald-500/25 text-emerald-400">
-      <Trophy size={9} />W
+      <Trophy size={9} />胜
     </span>
   );
   if (result === 'L') return (
     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-bold bg-red-500/15 border border-red-500/25 text-red-400">
-      <X size={9} />L
+      <X size={9} />负
     </span>
   );
   return (
     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-bold bg-zinc-700/50 border border-zinc-600/40 text-zinc-400">
-      <Minus size={9} />D
+      <Minus size={9} />平
     </span>
   );
 }
@@ -24,7 +25,7 @@ export default function H2HHistory({ h2h, homeTeam, awayTeam }) {
       <div className="card p-5">
         <div className="mb-3">
           <h2 className="font-display font-semibold text-zinc-100">历史交锋</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">Head-to-Head</p>
+          <p className="text-xs text-zinc-500 mt-0.5">交锋记录</p>
         </div>
         <div className="flex items-center justify-center h-20 text-zinc-600 text-sm">
           暂无历史交锋数据
@@ -40,15 +41,15 @@ export default function H2HHistory({ h2h, homeTeam, awayTeam }) {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h2 className="font-display font-semibold text-zinc-100">历史交锋</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">Head-to-Head · 近 {record.total} 场</p>
+          <p className="text-xs text-zinc-500 mt-0.5">交锋记录 · 近 {record.total} 场</p>
         </div>
         {/* W-D-L summary */}
         <div className="flex items-center gap-1 text-xs font-mono">
-          <span className="text-emerald-400 font-bold">{record.wins}W</span>
+          <span className="text-emerald-400 font-bold">{record.wins}胜</span>
           <span className="text-zinc-600">·</span>
-          <span className="text-zinc-400">{record.draws}D</span>
+          <span className="text-zinc-400">{record.draws}平</span>
           <span className="text-zinc-600">·</span>
-          <span className="text-red-400 font-bold">{record.losses}L</span>
+          <span className="text-red-400 font-bold">{record.losses}负</span>
         </div>
       </div>
 
@@ -88,8 +89,8 @@ export default function H2HHistory({ h2h, homeTeam, awayTeam }) {
 
             <div className="flex-1 min-w-0">
               <p className="text-xs text-zinc-500 truncate">
-                {g.competition}
-                {g.round ? ` · ${g.round}` : ''}
+                {translateCompetition(g.competition)}
+                {g.round ? ` · ${translateRound(g.round)}` : ''}
               </p>
             </div>
 

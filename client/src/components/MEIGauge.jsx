@@ -1,4 +1,5 @@
 // Module A: MEI Gauge — semicircular SVG gauge
+import { translateRisk, translateTrend } from '../utils/display';
 
 const LEVEL_CONFIG = {
   '市场有效局': { color: '#22c55e', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400' },
@@ -40,9 +41,9 @@ export default function MEIGauge({ score = 0, level, risk, trend, components }) 
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="font-display font-semibold text-zinc-100 text-sm">MEI 市场情绪</h3>
-          <p className="text-xs text-zinc-500 mt-0.5">Market Emotion Index</p>
+          <p className="text-xs text-zinc-500 mt-0.5">市场情绪指数 · 模块 A</p>
         </div>
-        <span className={`badge border ${cfg.bg} ${cfg.border} ${cfg.text}`}>{risk}</span>
+        <span className={`badge border ${cfg.bg} ${cfg.border} ${cfg.text}`}>{translateRisk(risk)}</span>
       </div>
 
       {/* Gauge SVG */}
@@ -73,7 +74,7 @@ export default function MEIGauge({ score = 0, level, risk, trend, components }) 
       {/* Level badge */}
       <div className={`text-center py-1.5 px-3 rounded-lg ${cfg.bg} border ${cfg.border} mb-4`}>
         <span className={`font-display font-semibold text-sm ${cfg.text}`}>{level}</span>
-        <span className="text-xs text-zinc-500 ml-2">趋势: {trend}</span>
+        <span className="text-xs text-zinc-500 ml-2">趋势：{translateTrend(trend)}</span>
       </div>
 
       {/* Components breakdown */}
