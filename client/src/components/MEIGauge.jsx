@@ -13,6 +13,7 @@ const COMP_LABELS = {
   tournamentPressure: '赛程压力',
   marketCrowding: '盘口拥挤',
   narrativeConsensus: '叙事一致',
+  liveTension: '实时张力',
 };
 
 export default function MEIGauge({ score = 0, level, risk, trend, components }) {
@@ -80,18 +81,25 @@ export default function MEIGauge({ score = 0, level, risk, trend, components }) 
       {/* Components breakdown */}
       {components && (
         <div className="space-y-2">
-          {Object.entries(components).map(([key, val]) => (
-            <div key={key} className="flex items-center gap-2">
-              <span className="text-xs text-zinc-500 w-20 shrink-0">{COMP_LABELS[key] || key}</span>
-              <div className="flex-1 bg-zinc-800 rounded-full h-1.5">
-                <div
-                  className="h-1.5 rounded-full transition-all duration-500"
-                  style={{ width: `${(val / 20) * 100}%`, background: cfg.color }}
-                />
+          {Object.entries(components).map(([key, val]) => {
+            const isNeg = val < 0;
+            const barPct = Math.min(100, Math.max(0, (Math.abs(val) / 20) * 100));
+            const barColor = isNeg ? '#71717a' : cfg.color;
+            return (
+              <div key={key} className="flex items-center gap-2">
+                <span className="text-xs text-zinc-500 w-20 shrink-0">{COMP_LABELS[key] || key}</span>
+                <div className="flex-1 bg-zinc-800 rounded-full h-1.5">
+                  <div
+                    className="h-1.5 rounded-full transition-all duration-500"
+                    style={{ width: `${barPct}%`, background: barColor }}
+                  />
+                </div>
+                <span className={`font-mono text-xs w-6 text-right ${isNeg ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  {val > 0 ? val : val}
+                </span>
               </div>
-              <span className="font-mono text-xs text-zinc-400 w-6 text-right">{val}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
