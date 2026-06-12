@@ -5,6 +5,7 @@ const fixturesRouter = require('./routes/fixtures');
 const oddsRouter = require('./routes/odds');
 const liveRouter = require('./routes/live');
 const engineRouter = require('./routes/engine');
+const polymarketRouter = require('./routes/polymarket');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -20,6 +21,7 @@ app.use('/api/fixtures', fixturesRouter);
 app.use('/api/odds', oddsRouter);
 app.use('/api/live', liveRouter);
 app.use('/api/engine', engineRouter);
+app.use('/api/polymarket', polymarketRouter);
 
 app.get('/api/health', (req, res) =>
   res.json({ status: 'ok', time: new Date().toISOString() })

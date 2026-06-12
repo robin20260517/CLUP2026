@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchFixtures } from '../api';
 import axios from 'axios';
 import MatchCard from '../components/MatchCard';
+import ChampionOdds from '../components/ChampionOdds';
 import { Activity, Calendar, TrendingUp, Zap } from 'lucide-react';
 
 const LIVE_STATUSES = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE']);
@@ -116,6 +117,8 @@ export default function Dashboard() {
       <MatchSection title="实时赛事" icon={Activity} fixtures={liveFixtures} enginesMap={enginesMap} />
       <MatchSection title="即将开赛" icon={Calendar} fixtures={upcomingFixtures} enginesMap={enginesMap} />
       <MatchSection title="近期战果" icon={TrendingUp} fixtures={recentFixtures} enginesMap={enginesMap} />
+
+      <ChampionOdds />
 
       {!isLoading && fixtures.length === 0 && (
         <div className="card p-12 text-center">

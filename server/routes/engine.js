@@ -3,6 +3,7 @@ const cache = require('../cache');
 const cfg = require('../config');
 const espnService = require('../services/espn');
 const { fetchH2H } = espnService;
+const { fetchChampionOdds } = require('../services/polymarket');
 const elo = require('../engine/elo');
 const { calculateMEI } = require('../engine/mei');
 const { scoreMatrix, ouMatrix, ahMatrix, resultProbs } = require('../engine/matrix');
@@ -21,10 +22,11 @@ async function buildEngine(fixtureId) {
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  // Fetch fixture and H2H in parallel
-  const [fixtureData, rawH2H] = await Promise.all([
+  // Fetch fixture, H2H and Polymarket odds in parallel
+  const [fixtureData, rawH2H, championOdds] = await Promise.all([
     espnService.fetchFixtureById(fixtureId),
     fetchH2H(fixtureId),
+    fetchChampionOdds(),
   ]);
   if (!fixtureData) throw new Error(`Fixture ${fixtureId} not found`);
 
@@ -66,8 +68,8 @@ async function buildEngine(fixtureId) {
     };
   }
 
-  // Module A: MEI
-  const mei = calculateMEI(fixture, oddsInput, { favorite: eloFavorite });
+  // Module A: MEI (enhanced with Polymarket champion odds)
+  const mei = calculateMEI(fixture, oddsInput, { favorite: eloFavorite }, championOdds);
 
   // Module C/D: Tempo — pass ELO + odds + round for pre-match prediction
   const round = fixture.league?.round;

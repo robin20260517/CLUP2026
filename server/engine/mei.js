@@ -1,24 +1,41 @@
 // Module A: Market Emotion Index (MEI)
 // Each component: 0-20, total 0-100
 
-function calculateHeat(fixture, odds) {
-  // Tier 1: global superpowers (max heat +4)
-  const tier1 = ['Brazil', 'Argentina', 'France', 'England', 'Spain', 'Germany', 'Portugal'];
-  // Tier 2: strong WC nations with big fanbases (+2)
-  const tier2 = ['Mexico', 'USA', 'Netherlands', 'Italy', 'Belgium', 'Croatia',
-                 'Uruguay', 'Japan', 'South Korea', 'Morocco', 'Colombia', 'Senegal'];
+function calculateHeat(fixture, odds, championOdds) {
   const home = fixture?.teams?.home?.name || '';
   const away = fixture?.teams?.away?.name || '';
-  const isTier1 = tier1.some(t => home.includes(t) || away.includes(t));
-  const isTier2 = !isTier1 && tier2.some(t => home.includes(t) || away.includes(t));
-  const isHighProfile = isTier1 || isTier2;
 
-  // Tight odds spread = liquid market = high heat
+  // Use Polymarket champion probability as real-time global appeal signal
+  const homeProb = championOdds?.[home]?.prob ?? championOdds?.[home.split(' ')[0]]?.prob ?? 0;
+  const awayProb = championOdds?.[away]?.prob ?? championOdds?.[away.split(' ')[0]]?.prob ?? 0;
+  const maxProb = Math.max(homeProb, awayProb);
+
+  // Convert champion probability → base heat (Spain 17% → 18, Qatar 0.1% → 6)
+  let baseHeat;
+  if (maxProb >= 0.14) baseHeat = 18;
+  else if (maxProb >= 0.08) baseHeat = 16;
+  else if (maxProb >= 0.04) baseHeat = 14;
+  else if (maxProb >= 0.02) baseHeat = 12;
+  else if (maxProb >= 0.01) baseHeat = 10;
+  else if (maxProb >= 0.005) baseHeat = 8;
+  else baseHeat = 6;
+
+  // Fallback to hardcoded tiers when no Polymarket data
+  if (!championOdds || Object.keys(championOdds).length === 0) {
+    const tier1 = ['Brazil', 'Argentina', 'France', 'England', 'Spain', 'Germany', 'Portugal'];
+    const tier2 = ['Mexico', 'USA', 'Netherlands', 'Italy', 'Belgium', 'Croatia',
+                   'Uruguay', 'Japan', 'South Korea', 'Morocco', 'Colombia', 'Senegal'];
+    const isTier1 = tier1.some(t => home.includes(t) || away.includes(t));
+    const isTier2 = !isTier1 && tier2.some(t => home.includes(t) || away.includes(t));
+    const spread = odds?.spread || 0;
+    const liquidityScore = spread < 0.05 ? 18 : spread < 0.1 ? 14 : spread < 0.2 ? 10 : 6;
+    return Math.min(20, liquidityScore + (isTier1 ? 4 : isTier2 ? 2 : 0));
+  }
+
+  // Tight odds spread adds small bonus
   const spread = odds?.spread || 0;
-  const liquidityScore = spread < 0.05 ? 18 : spread < 0.1 ? 14 : spread < 0.2 ? 10 : 6;
-
-  const boost = isTier1 ? 4 : isTier2 ? 2 : 0;
-  return Math.min(20, liquidityScore + boost);
+  const spreadBonus = spread < 0.05 ? 2 : spread < 0.1 ? 1 : 0;
+  return Math.min(20, baseHeat + spreadBonus);
 }
 
 function calculateMotivationGap(fixture) {
@@ -62,8 +79,8 @@ function calculateNarrativeConsensus(fixture, odds, eloFavorite) {
   return oddsFavoredHome === eloFavoredHome ? 16 : 8;
 }
 
-function calculateMEI(fixture, odds, eloData) {
-  const heat = calculateHeat(fixture, odds);
+function calculateMEI(fixture, odds, eloData, championOdds) {
+  const heat = calculateHeat(fixture, odds, championOdds);
   const motivationGap = calculateMotivationGap(fixture);
   const tournamentPressure = calculateTournamentPressure(fixture);
   const marketCrowding = calculateMarketCrowding(odds);
