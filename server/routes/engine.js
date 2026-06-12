@@ -134,8 +134,8 @@ async function buildEngine(fixtureId) {
       ? liveScoreZone(score, xg, 90)
       : getScoreZone([], score, 0, xg, oddsInput, round, 0);
 
-  // Module G: Three-way Live Edge
-  const edge = threeWayEdge(posterior, oddsInput, minute, tempo.currentState);
+  // Module G: Three-way Live Edge — pass score and isFT for proper context
+  const edge = threeWayEdge(posterior, oddsInput, minute, tempo.currentState, score, isFT);
 
   // Matrices H/I/J
   const scores = scoreMatrix(xg.home, xg.away);
