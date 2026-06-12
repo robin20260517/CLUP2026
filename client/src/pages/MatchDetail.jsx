@@ -210,6 +210,9 @@ export default function MatchDetail() {
           elo={engine.elo}
           xg={engine.xg}
           probs={engine.probs_prior}
+          posterior={engine.probs_posterior}
+          fifaRank={engine.fifaRank}
+          isLive={engine.isLive}
         />
       </div>
 
