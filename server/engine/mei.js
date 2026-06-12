@@ -79,14 +79,50 @@ function calculateNarrativeConsensus(fixture, odds, eloFavorite) {
   return oddsFavoredHome === eloFavoredHome ? 16 : 8;
 }
 
-function calculateMEI(fixture, odds, eloData, championOdds) {
-  const heat = calculateHeat(fixture, odds, championOdds);
+// Convert Bayesian posterior (home/draw/away in %) → implied decimal odds
+// Used during live matches so MEI responds to score changes
+function posteriorToImpliedOdds(posterior) {
+  if (!posterior) return null;
+  const hp = Math.max(1, posterior.home) / 100;
+  const dp = Math.max(1, posterior.draw) / 100;
+  const ap = Math.max(1, posterior.away) / 100;
+  const tot = hp + dp + ap;
+  const MARGIN = 1.06;
+  return {
+    homeOdds: parseFloat((1 / (hp / tot * MARGIN)).toFixed(2)),
+    drawOdds: parseFloat((1 / (dp / tot * MARGIN)).toFixed(2)),
+    awayOdds: parseFloat((1 / (ap / tot * MARGIN)).toFixed(2)),
+    spread: parseFloat(Math.abs((1 / (hp / tot * MARGIN)) - (1 / (ap / tot * MARGIN))).toFixed(2)),
+    isLiveDerived: true,
+  };
+}
+
+// Live tension bonus: reward extreme swing (one team dominant in live state)
+function calcLiveTensionBonus(posterior, minute) {
+  if (!posterior || !minute) return 0;
+  const maxSide = Math.max(posterior.home ?? 33, posterior.away ?? 33);
+  // Big probability swing = market is repositioning = high tension
+  if (maxSide > 80) return minute > 60 ? 8 : 5;
+  if (maxSide > 65) return 4;
+  if (maxSide < 40) return 3; // very tight game late = tension
+  return 0;
+}
+
+function calculateMEI(fixture, odds, eloData, championOdds, posterior, minute) {
+  // During live matches: blend pre-match static odds with live implied odds
+  // so MEI responds when goals are scored or big chances happen
+  const isLive = !!posterior && minute > 0;
+  const liveOdds = isLive ? posteriorToImpliedOdds(posterior) : null;
+  const effectiveOdds = liveOdds || odds;
+
+  const heat = calculateHeat(fixture, effectiveOdds, championOdds);
   const motivationGap = calculateMotivationGap(fixture);
   const tournamentPressure = calculateTournamentPressure(fixture);
-  const marketCrowding = calculateMarketCrowding(odds);
-  const narrativeConsensus = calculateNarrativeConsensus(fixture, odds, eloData?.favorite);
+  const marketCrowding = calculateMarketCrowding(effectiveOdds);
+  const narrativeConsensus = calculateNarrativeConsensus(fixture, effectiveOdds, eloData?.favorite);
+  const liveTension = calcLiveTensionBonus(posterior, minute);
 
-  const score = heat + motivationGap + tournamentPressure + marketCrowding + narrativeConsensus;
+  const score = Math.min(100, heat + motivationGap + tournamentPressure + marketCrowding + narrativeConsensus + liveTension);
 
   let level, risk, trend;
   if (score <= 40) { level = '市场有效局'; risk = 'LOW'; trend = 'STABLE'; }
@@ -98,7 +134,8 @@ function calculateMEI(fixture, odds, eloData, championOdds) {
     level,
     risk,
     trend,
-    components: { heat, motivationGap, tournamentPressure, marketCrowding, narrativeConsensus },
+    components: { heat, motivationGap, tournamentPressure, marketCrowding, narrativeConsensus, liveTension },
+    isLiveDerived: isLive,
   };
 }
 

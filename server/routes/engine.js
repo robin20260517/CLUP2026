@@ -6,7 +6,7 @@ const { fetchH2H, fetchSummary } = espnService;
 const { fetchChampionOdds } = require('../services/polymarket');
 const elo = require('../engine/elo');
 const { calculateMEI } = require('../engine/mei');
-const { scoreMatrix, ouMatrix, ahMatrix, resultProbs } = require('../engine/matrix');
+const { scoreMatrix, ouMatrix, ahMatrix, resultProbs, liveScoreZone } = require('../engine/matrix');
 const { kellyEdge, edgeRating, liveEdge, threeWayEdge } = require('../engine/kelly');
 const { updateProbs } = require('../engine/bayesian');
 const {
@@ -72,8 +72,8 @@ async function buildEngine(fixtureId) {
     };
   }
 
-  // Module A: MEI (enhanced with Polymarket champion odds)
-  const mei = calculateMEI(fixture, oddsInput, { favorite: eloFavorite }, championOdds);
+  // Module A: MEI — pre-match uses static odds; live uses Bayesian posterior as implied odds
+  // posterior not computed yet at this point, so we pass it after bayesian update below
 
   // Module C/D: Tempo — pass ELO + odds + round for pre-match prediction
   const round = fixture.league?.round;
@@ -98,23 +98,17 @@ async function buildEngine(fixtureId) {
     ? updateProbs(prior, { goalsHome: score.home || 0, goalsAway: score.away || 0, xGHome: xg.home, xGAway: xg.away, minuteElapsed: minute })
     : prior;
 
-  // Snapshot mechanism: capture stats AT minute 15 and minute 30 (locked forever)
+  // Module A: MEI — now uses posterior as live implied odds so it reacts to goals
+  const mei = calculateMEI(fixture, oddsInput, { favorite: eloFavorite }, championOdds, isLive ? posterior : null, minute);
+
+  // Snapshot mechanism: capture stats AT minute 15 (locked for Module E only)
   const snap15Key = `snap:15:${fixtureId}`;
-  const snap30Key = `snap:30:${fixtureId}`;
-
-  if (isLive && stats.length > 0) {
-    if (minute >= 15 && !cache.get(snap15Key)) {
-      cache.set(snap15Key, { stats, score, minute }, 18000); // 5-hour TTL (full match)
-    }
-    if (minute >= 30 && !cache.get(snap30Key)) {
-      cache.set(snap30Key, { stats, score, minute }, 18000);
-    }
+  if (isLive && stats.length > 0 && minute >= 15 && !cache.get(snap15Key)) {
+    cache.set(snap15Key, { stats, score, minute }, 18000);
   }
-
   const snap15 = cache.get(snap15Key);
-  const snap30 = cache.get(snap30Key);
 
-  // Module E: 15-min discriminator — always uses minute-15 snapshot once available
+  // Module E: 15-min discriminator — locked at minute-15 snapshot
   const fifteenMin = isLive
     ? identify15Min(
         snap15?.stats ?? stats,
@@ -124,14 +118,12 @@ async function buildEngine(fixtureId) {
       )
     : null;
 
-  // Module F: Zone prediction — pre-match uses DK O/U; live locks at minute 30
-  const scoreZone = getScoreZone(
-    snap30?.stats ?? stats,
-    snap30?.score ?? score,
-    snap30?.minute ?? minute,
-    xg, oddsInput, round,
-    minute,
-  );
+  // Module F: Score Zone
+  // Live → continuous Poisson remaining-time model (updates every 60s, no lock)
+  // Pre-match → static DK O/U + xG prediction
+  const scoreZone = isLive
+    ? liveScoreZone(score, xg, minute)
+    : getScoreZone([], score, 0, xg, oddsInput, round, 0);
 
   // Module G: Three-way Live Edge
   const edge = threeWayEdge(posterior, oddsInput, minute, tempo.currentState);
