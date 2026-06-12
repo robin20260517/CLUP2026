@@ -256,10 +256,69 @@ function extractStats(espnSummary) {
   }));
 }
 
-// Fetch and parse H2H history from ESPN summary endpoint
-async function fetchH2H(espnId) {
-  const cacheKey = `h2h:${espnId}`;
-  // cache stores { data: result|null } to distinguish hit-with-null from miss
+// Convert full summary odds (homeTeamOdds / awayTeamOdds / drawOdds) to our format
+function parseSummaryOdds(summaryOdds) {
+  if (!summaryOdds?.length) return null;
+  const o = summaryOdds[0];
+  const homeML = o.homeTeamOdds?.moneyLine;
+  const awayML = o.awayTeamOdds?.moneyLine;
+  const drawML = o.drawOdds?.moneyLine;
+  if (!homeML && !awayML) return null;
+
+  const toDecimal = ml => {
+    if (!ml) return null;
+    return ml > 0
+      ? parseFloat(((ml / 100) + 1).toFixed(2))
+      : parseFloat(((100 / Math.abs(ml)) + 1).toFixed(2));
+  };
+
+  const homeOdds = toDecimal(homeML);
+  const awayOdds = toDecimal(awayML);
+  const drawOdds = toDecimal(drawML);
+  const margin = (homeOdds ? 1/homeOdds : 0) + (awayOdds ? 1/awayOdds : 0) + (drawOdds ? 1/drawOdds : 0);
+
+  return {
+    homeOdds, awayOdds, drawOdds,
+    homeML, awayML, drawML,
+    overUnder: o.overUnder,
+    overOdds: o.overOdds,
+    underOdds: o.underOdds,
+    provider: o.provider?.name || 'DraftKings',
+    margin: parseFloat(((margin - 1) * 100).toFixed(1)),
+    spread: homeOdds && awayOdds ? parseFloat(Math.abs(homeOdds - awayOdds).toFixed(2)) : 0,
+    awayDerived: false,
+  };
+}
+
+// Extract lineup from ESPN summary roster
+function extractLineup(rosters) {
+  if (!rosters?.length) return null;
+  const result = {};
+  for (const r of rosters) {
+    const teamName = r.team?.displayName;
+    if (!teamName) continue;
+    const athletes = (r.roster || r.athletes || []);
+    const starters = athletes.filter(a => a.starter);
+    const subs = athletes.filter(a => !a.starter && a.active !== false);
+    result[teamName] = {
+      formation: r.formation || null,
+      starters: starters.map(a => ({
+        name: a.displayName || a.athlete?.displayName,
+        position: a.position?.abbreviation || a.athlete?.position?.abbreviation,
+        jersey: a.jersey,
+      })),
+      subs: subs.slice(0, 7).map(a => ({
+        name: a.displayName || a.athlete?.displayName,
+        position: a.position?.abbreviation || a.athlete?.position?.abbreviation,
+      })),
+    };
+  }
+  return Object.keys(result).length ? result : null;
+}
+
+// Fetch ESPN summary — returns h2h, real odds, and lineup in one request
+async function fetchSummary(espnId) {
+  const cacheKey = `summary:${espnId}`;
   const cached = cache.get(cacheKey);
   if (cached !== null) return cached.data;
 
@@ -269,37 +328,33 @@ async function fetchH2H(espnId) {
       timeout: 8000,
     });
 
+    // H2H
+    let h2h = null;
     const h2hGroups = data.headToHeadGames || [];
-    if (!h2hGroups.length) {
-      cache.set(cacheKey, { data: null }, 3600);
-      return null;
+    if (h2hGroups.length) {
+      const teamEntry = h2hGroups[0];
+      const games = (teamEntry.events || []).slice(0, 10).map(e => ({
+        id: e.id, date: e.gameDate,
+        homeTeamId: String(e.homeTeamId), awayTeamId: String(e.awayTeamId),
+        homeTeamScore: parseInt(e.homeTeamScore) || 0,
+        awayTeamScore: parseInt(e.awayTeamScore) || 0,
+        result: e.gameResult,
+        competition: e.competitionName, round: e.roundName,
+        opponentName: e.opponent?.displayName,
+        opponentLogo: e.opponentLogo || e.opponent?.logos?.[0]?.href,
+      }));
+      h2h = { perspectiveTeamId: String(teamEntry.team?.id), perspectiveTeamName: teamEntry.team?.displayName, games };
     }
 
-    // Take the first team's event list (both entries share the same games)
-    const teamEntry = h2hGroups[0];
-    const events = (teamEntry.events || []).slice(0, 10);
+    // Real odds from summary (better than scoreboard odds)
+    const odds = parseSummaryOdds(data.odds || data.pickcenter);
 
-    const games = events.map(e => ({
-      id: e.id,
-      date: e.gameDate,
-      homeTeamId: String(e.homeTeamId),
-      awayTeamId: String(e.awayTeamId),
-      homeTeamScore: parseInt(e.homeTeamScore) || 0,
-      awayTeamScore: parseInt(e.awayTeamScore) || 0,
-      result: e.gameResult, // W/D/L from teamEntry.team perspective
-      competition: e.competitionName,
-      round: e.roundName,
-      opponentName: e.opponent?.displayName,
-      opponentLogo: e.opponentLogo || e.opponent?.logos?.[0]?.href,
-    }));
+    // Lineup/roster
+    const lineup = extractLineup(data.rosters);
 
-    const result = {
-      perspectiveTeamId: String(teamEntry.team?.id),
-      perspectiveTeamName: teamEntry.team?.displayName,
-      games,
-    };
-
-    cache.set(cacheKey, { data: result }, 7200); // 2h cache — H2H history rarely changes
+    const result = { h2h, odds, lineup };
+    // TTL: H2H data is stable, but odds + lineup change on match day
+    cache.set(cacheKey, { data: result }, 3600);
     return result;
   } catch (_) {
     cache.set(cacheKey, { data: null }, 1800);
@@ -307,4 +362,10 @@ async function fetchH2H(espnId) {
   }
 }
 
-module.exports = { fetchAllFixtures, fetchLiveFixtures, fetchFixtureById, extractStats, convertEvent, fetchDay, fetchH2H };
+// Keep fetchH2H as a thin wrapper for backward compat
+async function fetchH2H(espnId) {
+  const summary = await fetchSummary(espnId);
+  return summary?.h2h || null;
+}
+
+module.exports = { fetchAllFixtures, fetchLiveFixtures, fetchFixtureById, extractStats, convertEvent, fetchDay, fetchH2H, fetchSummary, parseSummaryOdds };

@@ -10,6 +10,7 @@ import LiveEdge from '../components/LiveEdge';
 import EloComparison from '../components/EloComparison';
 import ScoreZone from '../components/ScoreZone';
 import H2HHistory from '../components/H2HHistory';
+import Lineup from '../components/Lineup';
 import { ArrowLeft, RefreshCw, Clock } from 'lucide-react';
 import {
   formatMatchDateTime,
@@ -114,6 +115,9 @@ export default function MatchDetail() {
           <div className="text-center flex-1">
             <p className="font-display font-bold text-2xl text-zinc-100">{translateTeam(engine.homeTeam)}</p>
             <p className="text-xs text-zinc-500 mt-1">ELO {engine.elo?.home}</p>
+            {engine.fifaRank?.home && (
+              <p className="text-xs text-zinc-600 mt-0.5">FIFA #{engine.fifaRank.home.rank}</p>
+            )}
           </div>
 
           <div className="text-center shrink-0">
@@ -134,6 +138,9 @@ export default function MatchDetail() {
           <div className="text-center flex-1">
             <p className="font-display font-bold text-2xl text-zinc-100">{translateTeam(engine.awayTeam)}</p>
             <p className="text-xs text-zinc-500 mt-1">ELO {engine.elo?.away}</p>
+            {engine.fifaRank?.away && (
+              <p className="text-xs text-zinc-600 mt-0.5">FIFA #{engine.fifaRank.away.rank}</p>
+            )}
           </div>
         </div>
 
@@ -276,6 +283,13 @@ export default function MatchDetail() {
           <AHMatrix ah={engine.ah_matrix} homeTeam={engine.homeTeam} awayTeam={engine.awayTeam} />
         </div>
       </div>
+
+      {/* Lineup */}
+      <Lineup
+        lineup={engine.lineup}
+        homeTeam={translateTeam(engine.homeTeam)}
+        awayTeam={translateTeam(engine.awayTeam)}
+      />
 
       {/* Footer */}
       <div className="text-center text-xs text-zinc-600 pb-4">

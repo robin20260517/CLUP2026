@@ -2,7 +2,7 @@ const express = require('express');
 const cache = require('../cache');
 const cfg = require('../config');
 const espnService = require('../services/espn');
-const { fetchH2H } = espnService;
+const { fetchH2H, fetchSummary } = espnService;
 const { fetchChampionOdds } = require('../services/polymarket');
 const elo = require('../engine/elo');
 const { calculateMEI } = require('../engine/mei');
@@ -13,6 +13,7 @@ const {
   approximateXG, identifyTempo, identify15Min,
   getScoreZone, nextStateProbs,
 } = require('../engine/tempo');
+const { getByTeam: getFIFARank } = require('../data/fifa_rankings');
 
 const router = express.Router();
 const LIVE_STATUSES = new Set(cfg.liveStatuses);
@@ -22,12 +23,15 @@ async function buildEngine(fixtureId) {
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  // Fetch fixture, H2H and Polymarket odds in parallel
-  const [fixtureData, rawH2H, championOdds] = await Promise.all([
+  // Fetch fixture, ESPN summary (h2h+odds+lineup) and Polymarket odds in parallel
+  const [fixtureData, summary, championOdds] = await Promise.all([
     espnService.fetchFixtureById(fixtureId),
-    fetchH2H(fixtureId),
+    fetchSummary(fixtureId),
     fetchChampionOdds(),
   ]);
+  const rawH2H = summary?.h2h || null;
+  const summaryOdds = summary?.odds || null;
+  const lineup = summary?.lineup || null;
   if (!fixtureData) throw new Error(`Fixture ${fixtureId} not found`);
 
   const fixture = fixtureData;
@@ -50,8 +54,8 @@ async function buildEngine(fixtureId) {
   const liveXG = (isLive && stats.length > 0) ? approximateXG(stats) : null;
   const xg = liveXG || eloXG;
 
-  // Odds: use ESPN DraftKings odds first, then ELO-derived
-  let oddsInput = fixture.odds || null;
+  // Odds: priority → ESPN summary (full DraftKings) → scoreboard odds → ELO-derived
+  let oddsInput = summaryOdds || fixture.odds || null;
 
   // Derive odds from ELO if not available
   if (!oddsInput || !oddsInput.homeOdds) {
@@ -173,6 +177,7 @@ async function buildEngine(fixtureId) {
     status: fixture.fixture?.status,
     date: fixture.fixture?.date,
 
+    fifaRank: { home: getFIFARank(homeTeam), away: getFIFARank(awayTeam) },
     elo: { home: eloHome, away: eloAway, favorite: eloFavorite, spiHome: elo.spi(eloHome), spiAway: elo.spi(eloAway) },
     xg,
 
@@ -207,6 +212,7 @@ async function buildEngine(fixtureId) {
 
     odds: oddsInput,
     h2h,
+    lineup,
     recommended_zone: scoreZone?.zone || null,
     updated: new Date().toISOString(),
   };

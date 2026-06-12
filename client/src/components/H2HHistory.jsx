@@ -41,12 +41,25 @@ function RecordBar({ wins, draws, losses, total, leftLabel, rightLabel }) {
   );
 }
 
-// ESPN recent H2H tab
+const WC_KEYWORDS = ['world cup', 'fifa world', 'coupe du monde', 'weltmeisterschaft'];
+function isWorldCupGame(g) {
+  const comp = (g.competition || '').toLowerCase();
+  return WC_KEYWORDS.some(kw => comp.includes(kw));
+}
+
+// ESPN recent H2H tab — filters out WC matches (those are in the WC history tab)
 function ESPNTab({ h2h, homeTeam, awayTeam }) {
   if (!h2h?.games?.length) return (
     <div className="flex items-center justify-center h-20 text-zinc-600 text-sm">暂无近期交锋数据</div>
   );
-  const { record, games } = h2h;
+  const games = h2h.games.filter(g => !isWorldCupGame(g));
+  if (!games.length) return (
+    <div className="flex items-center justify-center h-20 text-zinc-600 text-sm">非世界杯交锋记录为空（世界杯场次见上方标签）</div>
+  );
+  const wins  = games.filter(g => g.result === 'W').length;
+  const draws = games.filter(g => g.result === 'D').length;
+  const losses = games.filter(g => g.result === 'L').length;
+  const record = { wins, draws, losses, total: games.length };
   return (
     <>
       <div className="flex items-center justify-between mb-3">
@@ -84,14 +97,16 @@ function ESPNTab({ h2h, homeTeam, awayTeam }) {
 
 // WC historical H2H tab
 function WCTab({ homeTeamEn, awayTeamEn, homeTeam, awayTeam }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['h2h:wc', homeTeamEn, awayTeamEn],
     queryFn: () => axios.get(`/api/h2h/wc?home=${encodeURIComponent(homeTeamEn)}&away=${encodeURIComponent(awayTeamEn)}`).then(r => r.data),
     staleTime: 3600_000,
+    retry: 2,
     enabled: !!(homeTeamEn && awayTeamEn),
   });
 
   if (isLoading) return <div className="flex items-center justify-center h-20 text-zinc-600 text-sm">加载历史数据…</div>;
+  if (error) return <div className="flex items-center justify-center h-20 text-red-500/60 text-sm">数据加载失败</div>;
   if (!data?.h2h) return <div className="flex items-center justify-center h-20 text-zinc-600 text-sm">世界杯历史无交锋记录</div>;
 
   const { record, games } = data.h2h;

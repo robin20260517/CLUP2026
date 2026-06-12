@@ -4,7 +4,7 @@
 const axios = require('axios');
 const cache = require('../cache');
 
-const RAW_BASE = 'https://raw.githubusercontent.com/openfootball/worldcup/master';
+const RAW_BASE = 'https://raw.githubusercontent.com/openfootball/world-cup/master';
 
 // Tournaments that have a separate cup_finals.txt for knockout stage
 const WITH_FINALS = new Set([1990, 1994, 1998, 2002, 2006, 2010, 2014, 2018, 2022]);
@@ -35,9 +35,12 @@ const TOURNAMENTS = [
 ];
 
 // Historical name → modern standard name (null = defunct, skip ELO update)
+// Also covers ESPN display name → openfootball stored name conversions
 const NORMALIZE = {
+  // Historical → modern
   'West Germany': 'Germany',
   'German DR': null,
+  'East Germany': null,
   'Soviet Union': null,
   'Yugoslavia': null,
   'Czechoslovakia': 'Czech Republic',
@@ -54,6 +57,15 @@ const NORMALIZE = {
   'Korea Republic': 'South Korea',
   'Korea DPR': 'North Korea',
   "People's Republic of China": 'China',
+  // ESPN display name → openfootball standard
+  'United States': 'USA',
+  'IR Iran': 'Iran',
+  'Republic of Korea': 'South Korea',
+  'Türkiye': 'Turkey',
+  'Curacao': 'Curaçao',
+  'Bosnia & Herzegovina': 'Bosnia and Herzegovina',
+  'Congo DR': 'DR Congo',
+  'DR Congo': 'DR Congo',
 };
 
 function normalizeName(name) {
@@ -87,9 +99,12 @@ function parseLine(line) {
   if (t.startsWith('=') || t.startsWith('▪') || t.startsWith('#') || t.startsWith('(')) return null;
   if (!/\d+-\d+/.test(t)) return null;
 
-  // Strip time prefix
-  let clean = t.replace(TIME_RE, '');
-  // Strip inline date prefix (e.g. "10 June" or "July 13")
+  // Strip weekday + month + day (+ optional time) prefix used in 2006/2010
+  // e.g. "Fri Jun 9     " or "Fri Jun 11 16:00    "
+  let clean = t.replace(/^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+\w+\s+\d{1,2}(?:\s+\d{1,2}:\d{2})?\s+/i, '');
+  // Strip time-only prefix (e.g. "17:00 UTC-3")
+  clean = clean.replace(TIME_RE, '');
+  // Strip standalone date prefix (e.g. "10 June" or "July 13")
   clean = clean.replace(DAY_MONTH_RE, '').replace(MONTH_PREFIX_RE, '').trim();
 
   // Detect penalty result: "..., 4-2 pen."
@@ -208,10 +223,33 @@ function h2hKey(t1, t2) {
   return [t1, t2].sort().join('|||');
 }
 
+// Collect all unique team names in the dataset for fuzzy lookup
+function resolveTeamName(raw, allMatches) {
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  // Try exact stored name (case-insensitive)
+  const teams = new Set([...allMatches.map(m => m.home), ...allMatches.map(m => m.away)]);
+  for (const t of teams) {
+    if (t && t.toLowerCase() === lower) return t;
+  }
+  // Partial match: stored name starts with query or vice versa
+  for (const t of teams) {
+    if (t && (t.toLowerCase().startsWith(lower) || lower.startsWith(t.toLowerCase()))) return t;
+  }
+  return null;
+}
+
 async function getH2H(team1, team2) {
   const matches = await getAllMatches();
+  // Exact key match first
   const key = h2hKey(team1, team2);
-  return matches.filter(m => h2hKey(m.home, m.away) === key);
+  let result = matches.filter(m => h2hKey(m.home, m.away) === key);
+  if (result.length) return result;
+  // Fuzzy fallback: resolve names from actual stored data
+  const r1 = resolveTeamName(team1, matches) || team1;
+  const r2 = resolveTeamName(team2, matches) || team2;
+  const fuzzyKey = h2hKey(r1, r2);
+  return matches.filter(m => h2hKey(m.home, m.away) === fuzzyKey);
 }
 
 // Goal distribution stats for Poisson calibration

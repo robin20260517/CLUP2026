@@ -7,6 +7,7 @@ const liveRouter = require('./routes/live');
 const engineRouter = require('./routes/engine');
 const polymarketRouter = require('./routes/polymarket');
 const h2hWcRouter = require('./routes/h2h_wc');
+const rankingsRouter = require('./routes/rankings');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -23,6 +24,7 @@ app.use('/api/live', liveRouter);
 app.use('/api/engine', engineRouter);
 app.use('/api/polymarket', polymarketRouter);
 app.use('/api/h2h/wc', h2hWcRouter);
+app.use('/api/rankings', rankingsRouter);
 
 app.get('/api/health', (req, res) => {
   const elo = require('./engine/elo');

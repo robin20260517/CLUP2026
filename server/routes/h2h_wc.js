@@ -9,6 +9,7 @@ router.get('/', async (req, res) => {
 
   const h = normalizeName(home) || home;
   const a = normalizeName(away) || away;
+  console.log(`[h2h:wc] ${home} → ${h}  vs  ${away} → ${a}`);
 
   try {
     const matches = await getH2H(h, a);
