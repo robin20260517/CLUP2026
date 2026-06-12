@@ -211,6 +211,12 @@ async function buildEngine(fixtureId) {
     updated: new Date().toISOString(),
   };
 
+  // Update live ELO when match is finished
+  const statusShort = fixture.fixture?.status?.short;
+  if (statusShort === 'FT' && score.home !== null && score.away !== null) {
+    elo.updateFromResult(homeTeam, awayTeam, score.home, score.away, fixtureId);
+  }
+
   // Today's pre-match fixtures use 90s TTL so kick-off detection is fast
   const today = new Date().toISOString().slice(0, 10);
   const isToday = fixture.fixture?.date?.slice(0, 10) === today;

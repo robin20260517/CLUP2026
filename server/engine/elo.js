@@ -86,4 +86,30 @@ function spi(elo) {
   return Math.round(((elo - min) / (max - min)) * 100);
 }
 
-module.exports = { get, winProb, expectedGoals, spi, setHistoricalELO, setBaseLambda, ELO: _elo };
+// Track 2026 matches already applied to avoid double-counting
+const _processed2026 = new Set();
+
+function updateFromResult(homeTeam, awayTeam, homeGoals, awayGoals, matchId) {
+  if (!homeTeam || !awayTeam || matchId === undefined) return;
+  const key = String(matchId);
+  if (_processed2026.has(key)) return;
+
+  const eH = get(homeTeam);
+  const eA = get(awayTeam);
+  const expH = 1 / (1 + Math.pow(10, (eA - eH) / 400));
+  const actualH = homeGoals > awayGoals ? 1 : homeGoals === awayGoals ? 0.5 : 0;
+
+  const K = 50;
+  const newEH = Math.round(eH + K * (actualH - expH));
+  const newEA = Math.round(eA + K * ((1 - actualH) - (1 - expH)));
+
+  _elo[homeTeam] = newEH;
+  _elo[awayTeam] = newEA;
+  _processed2026.add(key);
+
+  console.log(`[elo] 2026 update #${_processed2026.size}: ${homeTeam} ${homeGoals}-${awayGoals} ${awayTeam} → ${homeTeam} ${eH}→${newEH}, ${awayTeam} ${eA}→${newEA}`);
+}
+
+function getProcessedCount() { return _processed2026.size; }
+
+module.exports = { get, winProb, expectedGoals, spi, setHistoricalELO, setBaseLambda, updateFromResult, getProcessedCount, ELO: _elo };

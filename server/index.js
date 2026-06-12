@@ -24,9 +24,10 @@ app.use('/api/engine', engineRouter);
 app.use('/api/polymarket', polymarketRouter);
 app.use('/api/h2h/wc', h2hWcRouter);
 
-app.get('/api/health', (req, res) =>
-  res.json({ status: 'ok', time: new Date().toISOString() })
-);
+app.get('/api/health', (req, res) => {
+  const elo = require('./engine/elo');
+  res.json({ status: 'ok', time: new Date().toISOString(), elo2026Matches: elo.getProcessedCount() });
+});
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
