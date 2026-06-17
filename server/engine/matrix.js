@@ -166,4 +166,4 @@ function liveScoreZone(currentScore, xg, minute) {
   };
 }
 
-module.exports = { scoreMatrix, ouMatrix, ahMatrix, resultProbs, poisson, liveScoreZone };
+module.exports = { scoreMatrix, ouMatrix, ahMatrix, resultProbs, poisson, liveScoreZone, buildDCMatrix };
