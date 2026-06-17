@@ -104,14 +104,24 @@ test('rankTeams orders by points, then goal difference', () => {
   assert.equal(order[1], 'A');
 });
 
-test('rankTeams uses head-to-head when points and GD and GF are equal', () => {
-  const teams = ['A', 'B'];
+test('rankTeams (2026): head-to-head beats overall goal difference', () => {
+  // A and B are level on points (4 each). A has the better OVERALL goal
+  // difference (+4 vs -2), but B beat A head-to-head. Under the 2026 rules
+  // head-to-head is applied first, so B must rank above A.
+  const teams = ['A', 'B', 'C', 'D'];
   const results = [
-    { home: 'A', away: 'B', hg: 2, ag: 1 },
-    { home: 'B', away: 'A', hg: 1, ag: 2 },
+    { home: 'A', away: 'B', hg: 0, ag: 1 }, // B beat A head-to-head
+    { home: 'A', away: 'C', hg: 5, ag: 0 }, // inflates A's overall GD
+    { home: 'A', away: 'D', hg: 0, ag: 0 },
+    { home: 'B', away: 'C', hg: 0, ag: 3 },
+    { home: 'B', away: 'D', hg: 1, ag: 1 },
+    { home: 'C', away: 'D', hg: 2, ag: 0 },
   ];
+  // Points: C=6, A=4, B=4, D=2. A's overall GD (+4) > B's (-2), but B won the
+  // head-to-head, so 2026 rules put B ahead of A.
   const order = rankTeams(teams, results, noElo);
-  assert.equal(order[0], 'A');
+  assert.equal(order[1], 'B');
+  assert.equal(order[2], 'A');
 });
 
 test('rankTeams falls back to ELO when everything else ties', () => {

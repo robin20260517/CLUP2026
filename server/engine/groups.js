@@ -90,21 +90,23 @@ function inferGroups(fixtures) {
   return groups;
 }
 
-// Rank teams: points -> GD -> GF -> head-to-head (pts,GD,GF among tied) -> ELO.
+// Rank teams — FIFA World Cup 2026 order:
+//   overall points
+//   -> head-to-head among teams level on points (h2h pts, h2h GD, h2h GF)
+//   -> overall GD -> overall GF
+//   -> ELO (deterministic fallback, stands in for fair play / FIFA ranking).
+// NOTE: 2026 changed the rules so head-to-head is applied BEFORE overall goal
+// difference — the reverse of the 2018/2022 order.
 function rankTeams(teams, results, eloFn) {
   const t = tableFrom(teams, results);
-  const arr = teams.map(n => t[n]).sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+  // Build runs of teams that are level on overall points.
+  const arr = teams.map(n => t[n]).sort((a, b) => b.pts - a.pts);
 
   const out = [];
   let i = 0;
   while (i < arr.length) {
     let j = i + 1;
-    while (
-      j < arr.length &&
-      arr[j].pts === arr[i].pts &&
-      arr[j].gd === arr[i].gd &&
-      arr[j].gf === arr[i].gf
-    ) j++;
+    while (j < arr.length && arr[j].pts === arr[i].pts) j++;
 
     const run = arr.slice(i, j);
     if (run.length > 1) {
@@ -116,6 +118,8 @@ function rankTeams(teams, results, eloFn) {
         h[b.team].pts - h[a.team].pts ||
         h[b.team].gd - h[a.team].gd ||
         h[b.team].gf - h[a.team].gf ||
+        b.gd - a.gd ||
+        b.gf - a.gf ||
         eloFn(b.team) - eloFn(a.team)
       );
     }

@@ -43,7 +43,7 @@ export default function GroupCard({ group }) {
                 <span className="badge bg-zinc-800 border border-zinc-700 text-zinc-500 text-[10px]">已出局</span>
               )}
               <span className="text-[11px] text-zinc-500 font-mono shrink-0">
-                {t.standing.pts}分 · {t.standing.gd >= 0 ? '+' : ''}{t.standing.gd}
+                {t.standing.pts}分 · {t.standing.gd >= 0 ? '+' : ''}{t.standing.gd} · 预期{t.expPts}
               </span>
             </div>
             <ProbBar label="夺头名" value={t.pWin} color="bg-brand-500" />
