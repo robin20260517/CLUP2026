@@ -23,4 +23,7 @@ export const fetchOdds = (eventId) =>
 export const fetchOddsMovements = (eventId) =>
   api.get(`/odds/${eventId}/movements`).then(r => r.data);
 
+export const fetchGroups = () =>
+  api.get('/groups').then(r => r.data);
+
 export default api;

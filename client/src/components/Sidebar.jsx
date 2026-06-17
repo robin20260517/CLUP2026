@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Activity, Zap } from 'lucide-react';
+import { LayoutDashboard, Calendar, Activity, Zap, Trophy } from 'lucide-react';
 import { useLiveStatus } from '../hooks/useRefresh';
 import { translateTeam } from '../utils/display';
 
 const navItems = [
   { to: '/dashboard', label: '主控台', icon: LayoutDashboard },
+  { to: '/groups', label: '小组出线', icon: Trophy },
   { to: '/schedule', label: '赛程', icon: Calendar },
 ];
 
