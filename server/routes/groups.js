@@ -22,6 +22,22 @@ router.get('/', async (req, res) => {
 
     const out = [];
     for (const g of groups) {
+      // Recover scores for FT matches the bulk schedule feed hasn't populated
+      // yet (common for same-day finished matches): the per-fixture endpoint
+      // has the score even when fetchAllFixtures lags. Fold them into standings.
+      for (const m of g.matches) {
+        if (m.status === 'FT' && (m.hg == null || m.ag == null)) {
+          try {
+            const fxFull = await espn.fetchFixtureById(m.id);
+            const gh = fxFull?.goals?.home;
+            const ga = fxFull?.goals?.away;
+            if (gh != null && ga != null) {
+              m.hg = gh; m.ag = ga; m.played = true;
+            }
+          } catch { /* leave as unplayed if the score can't be recovered */ }
+        }
+      }
+
       const remaining = g.matches.filter(m => !m.played);
       const distByMatchId = {};
 
