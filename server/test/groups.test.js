@@ -86,3 +86,38 @@ test('inferGroups marks FT matches as played', () => {
   assert.equal(played.length, 1);
   assert.equal(played[0].hg, 2);
 });
+
+const { rankTeams } = require('../engine/groups');
+
+const noElo = () => 1700;
+
+test('rankTeams orders by points, then goal difference', () => {
+  const teams = ['A', 'B', 'C', 'D'];
+  const results = [
+    { home: 'A', away: 'B', hg: 1, ag: 0 },
+    { home: 'C', away: 'D', hg: 5, ag: 0 },
+    { home: 'A', away: 'C', hg: 0, ag: 0 },
+    { home: 'B', away: 'D', hg: 0, ag: 0 },
+  ];
+  const order = rankTeams(teams, results, noElo);
+  assert.equal(order[0], 'C');
+  assert.equal(order[1], 'A');
+});
+
+test('rankTeams uses head-to-head when points and GD and GF are equal', () => {
+  const teams = ['A', 'B'];
+  const results = [
+    { home: 'A', away: 'B', hg: 2, ag: 1 },
+    { home: 'B', away: 'A', hg: 1, ag: 2 },
+  ];
+  const order = rankTeams(teams, results, noElo);
+  assert.equal(order[0], 'A');
+});
+
+test('rankTeams falls back to ELO when everything else ties', () => {
+  const teams = ['Weak', 'Strong'];
+  const results = [];
+  const eloFn = name => (name === 'Strong' ? 2000 : 1600);
+  const order = rankTeams(teams, results, eloFn);
+  assert.equal(order[0], 'Strong');
+});

@@ -90,4 +90,39 @@ function inferGroups(fixtures) {
   return groups;
 }
 
-module.exports = { tableFrom, currentStandings, inferGroups, normalizeMatch, round1 };
+// Rank teams: points -> GD -> GF -> head-to-head (pts,GD,GF among tied) -> ELO.
+function rankTeams(teams, results, eloFn) {
+  const t = tableFrom(teams, results);
+  const arr = teams.map(n => t[n]).sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+
+  const out = [];
+  let i = 0;
+  while (i < arr.length) {
+    let j = i + 1;
+    while (
+      j < arr.length &&
+      arr[j].pts === arr[i].pts &&
+      arr[j].gd === arr[i].gd &&
+      arr[j].gf === arr[i].gf
+    ) j++;
+
+    const run = arr.slice(i, j);
+    if (run.length > 1) {
+      const names = run.map(x => x.team);
+      const nameSet = new Set(names);
+      const h2hResults = results.filter(r => nameSet.has(r.home) && nameSet.has(r.away));
+      const h = tableFrom(names, h2hResults);
+      run.sort((a, b) =>
+        h[b.team].pts - h[a.team].pts ||
+        h[b.team].gd - h[a.team].gd ||
+        h[b.team].gf - h[a.team].gf ||
+        eloFn(b.team) - eloFn(a.team)
+      );
+    }
+    out.push(...run);
+    i = j;
+  }
+  return out.map(x => x.team);
+}
+
+module.exports = { tableFrom, currentStandings, inferGroups, normalizeMatch, rankTeams, round1 };
