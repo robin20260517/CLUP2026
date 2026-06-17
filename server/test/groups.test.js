@@ -42,3 +42,47 @@ test('currentStandings only counts played (FT) matches', () => {
   assert.equal(t.A.pld, 1);
   assert.equal(t.C.pld, 1);
 });
+
+const { inferGroups } = require('../engine/groups');
+
+function fx(id, home, away, round = 'Group Stage - 1', short = 'NS', hg = null, ag = null) {
+  return {
+    fixture: { id, date: '2026-06-11T00:00:00Z', status: { short, elapsed: null } },
+    league: { round },
+    teams: { home: { name: home, logo: '' }, away: { name: away, logo: '' } },
+    goals: { home: hg, away: ag },
+  };
+}
+
+function cleanGroup(a, b, c, d) {
+  return [
+    fx(1, a, b), fx(2, c, d), fx(3, a, c), fx(4, b, d), fx(5, a, d), fx(6, b, c),
+  ];
+}
+
+test('inferGroups detects a clean 4-team / 6-match group', () => {
+  const groups = inferGroups(cleanGroup('A', 'B', 'C', 'D'));
+  assert.equal(groups.length, 1);
+  assert.deepEqual(groups[0].teams.slice().sort(), ['A', 'B', 'C', 'D']);
+  assert.equal(groups[0].matches.length, 6);
+});
+
+test('inferGroups rejects clusters that are not exactly 4 teams / 6 pairings', () => {
+  const dirty = [
+    ...cleanGroup('A', 'B', 'C', 'D'),
+    ...cleanGroup('E', 'F', 'G', 'H'),
+    fx(99, 'A', 'E'),
+  ];
+  const groups = inferGroups(dirty);
+  assert.equal(groups.length, 0);
+});
+
+test('inferGroups marks FT matches as played', () => {
+  const groups = inferGroups([
+    fx(1, 'A', 'B', 'Group Stage - 1', 'FT', 2, 0),
+    fx(2, 'C', 'D'), fx(3, 'A', 'C'), fx(4, 'B', 'D'), fx(5, 'A', 'D'), fx(6, 'B', 'C'),
+  ]);
+  const played = groups[0].matches.filter(m => m.played);
+  assert.equal(played.length, 1);
+  assert.equal(played[0].hg, 2);
+});
