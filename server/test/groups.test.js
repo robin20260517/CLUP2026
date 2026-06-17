@@ -121,3 +121,20 @@ test('rankTeams falls back to ELO when everything else ties', () => {
   const order = rankTeams(teams, results, eloFn);
   assert.equal(order[0], 'Strong');
 });
+
+const { finalScoreDist } = require('../engine/groups');
+
+test('finalScoreDist returns a pruned distribution summing to ~1', () => {
+  const dist = finalScoreDist({ xgHome: 1.6, xgAway: 1.1 });
+  assert.ok(dist.length > 0 && dist.length <= 12);
+  const sum = dist.reduce((s, d) => s + d.p, 0);
+  assert.ok(Math.abs(sum - 1) < 1e-6);
+});
+
+test('finalScoreDist offsets scorelines by the live base score', () => {
+  const dist = finalScoreDist({ xgHome: 1.5, xgAway: 1.0, baseH: 1, baseA: 0, minute: 80 });
+  const top = dist.slice().sort((a, b) => b.p - a.p)[0];
+  assert.equal(top.h, 1);
+  assert.equal(top.a, 0);
+  assert.ok(dist.every(d => d.h >= 1 && d.a >= 0));
+});

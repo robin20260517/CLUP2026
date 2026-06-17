@@ -125,4 +125,28 @@ function rankTeams(teams, results, eloFn) {
   return out.map(x => x.team);
 }
 
-module.exports = { tableFrom, currentStandings, inferGroups, normalizeMatch, rankTeams, round1 };
+// Final-score distribution for one match.
+// Not started: full ELO xG from 0-0. Live: base = current score, remaining xG
+// scaled by time left (Bayesian-style: prior xG conditioned on elapsed time + live xG).
+function finalScoreDist({ xgHome, xgAway, baseH = 0, baseA = 0, minute = 0, maxAdd = 6, coverage = 0.99, cap = 12 }) {
+  const frac = Math.max(0, (90 - minute) / 90);
+  const remH = Math.max(0.04, xgHome * frac);
+  const remA = Math.max(0.04, xgAway * frac);
+
+  const { probs, total } = buildDCMatrix(remH, remA, maxAdd);
+  const dist = probs
+    .map(({ h, a, p }) => ({ h: baseH + h, a: baseA + a, p: p / total }))
+    .sort((x, y) => y.p - x.p);
+
+  const pruned = [];
+  let cum = 0;
+  for (const d of dist) {
+    pruned.push(d);
+    cum += d.p;
+    if (cum >= coverage || pruned.length >= cap) break;
+  }
+  const s = pruned.reduce((acc, d) => acc + d.p, 0) || 1;
+  return pruned.map(d => ({ h: d.h, a: d.a, p: d.p / s }));
+}
+
+module.exports = { tableFrom, currentStandings, inferGroups, normalizeMatch, rankTeams, finalScoreDist, round1 };
