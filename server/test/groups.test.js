@@ -138,3 +138,55 @@ test('finalScoreDist offsets scorelines by the live base score', () => {
   assert.equal(top.a, 0);
   assert.ok(dist.every(d => d.h >= 1 && d.a >= 0));
 });
+
+const { projectGroup } = require('../engine/groups');
+
+test('projectGroup: all matches played is deterministic', () => {
+  const group = {
+    teams: ['A', 'B', 'C', 'D'],
+    matches: [
+      { id: 1, home: 'A', away: 'B', hg: 3, ag: 0, played: true },
+      { id: 2, home: 'C', away: 'D', hg: 1, ag: 0, played: true },
+      { id: 3, home: 'A', away: 'C', hg: 2, ag: 0, played: true },
+      { id: 4, home: 'B', away: 'D', hg: 1, ag: 0, played: true },
+      { id: 5, home: 'A', away: 'D', hg: 1, ag: 0, played: true },
+      { id: 6, home: 'B', away: 'C', hg: 0, ag: 0, played: true },
+    ],
+  };
+  const proj = projectGroup(group, {}, () => 1700);
+  const a = proj.teams.find(t => t.team === 'A');
+  assert.equal(a.pWin, 100);
+  assert.equal(a.pAdvance, 100);
+  assert.equal(a.clinched, true);
+  const sumWin = proj.teams.reduce((s, t) => s + t.pWin, 0);
+  const sumAdv = proj.teams.reduce((s, t) => s + t.pAdvance, 0);
+  assert.ok(Math.abs(sumWin - 100) < 0.5);
+  assert.ok(Math.abs(sumAdv - 200) < 0.5);
+});
+
+test('projectGroup: probabilities sum correctly with remaining matches', () => {
+  const group = {
+    teams: ['A', 'B', 'C', 'D'],
+    matches: [
+      { id: 1, home: 'A', away: 'B', hg: 1, ag: 0, played: true },
+      { id: 2, home: 'C', away: 'D', hg: 1, ag: 0, played: true },
+      { id: 3, home: 'A', away: 'C', hg: 0, ag: 0, played: true },
+      { id: 4, home: 'B', away: 'D', hg: 0, ag: 0, played: true },
+      { id: 5, home: 'A', away: 'D', played: false },
+      { id: 6, home: 'B', away: 'C', played: false },
+    ],
+  };
+  const distByMatchId = {
+    5: [{ h: 1, a: 0, p: 0.6 }, { h: 0, a: 1, p: 0.4 }],
+    6: [{ h: 1, a: 0, p: 0.5 }, { h: 0, a: 1, p: 0.5 }],
+  };
+  const proj = projectGroup(group, distByMatchId, () => 1700);
+  const sumWin = proj.teams.reduce((s, t) => s + t.pWin, 0);
+  const sumAdv = proj.teams.reduce((s, t) => s + t.pAdvance, 0);
+  assert.ok(Math.abs(sumWin - 100) < 0.5);
+  assert.ok(Math.abs(sumAdv - 200) < 0.5);
+  proj.teams.forEach(t => {
+    assert.ok(t.pWin >= 0 && t.pWin <= 100);
+    assert.ok(t.pAdvance >= 0 && t.pAdvance <= 100);
+  });
+});

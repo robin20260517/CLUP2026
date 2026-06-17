@@ -149,4 +149,75 @@ function finalScoreDist({ xgHome, xgAway, baseH = 0, baseA = 0, minute = 0, maxA
   return pruned.map(d => ({ h: d.h, a: d.a, p: d.p / s }));
 }
 
-module.exports = { tableFrom, currentStandings, inferGroups, normalizeMatch, rankTeams, finalScoreDist, round1 };
+// Project a group: enumerate remaining-match scoreline combinations and
+// accumulate P(win group) and P(advance / top-2) per team.
+// distByMatchId: { [matchId]: [{ h, a, p }] }. eloFn: (team) => number.
+function projectGroup(group, distByMatchId, eloFn) {
+  const teams = group.teams;
+  const played = group.matches
+    .filter(m => m.played)
+    .map(m => ({ home: m.home, away: m.away, hg: m.hg, ag: m.ag }));
+  const remaining = group.matches.filter(m => !m.played);
+
+  const pWin = {}, pAdv = {}, expPts = {};
+  teams.forEach(n => { pWin[n] = 0; pAdv[n] = 0; expPts[n] = 0; });
+
+  let dists = remaining.map(m =>
+    (distByMatchId[m.id] || [{ h: 0, a: 0, p: 1 }]).map(d => ({
+      home: m.home, away: m.away, hg: d.h, ag: d.a, p: d.p,
+    }))
+  );
+
+  const CAP = 300000;
+  let approx = false;
+  const comboCount = () => dists.reduce((acc, d) => acc * d.length, 1);
+  while (comboCount() > CAP && dists.some(d => d.length > 2)) {
+    dists = dists.map(d => {
+      const keep = d.slice().sort((a, b) => b.p - a.p).slice(0, Math.max(2, Math.floor(d.length / 2)));
+      const s = keep.reduce((x, y) => x + y.p, 0) || 1;
+      return keep.map(y => ({ ...y, p: y.p / s }));
+    });
+    approx = true;
+  }
+
+  const tally = (results, prob) => {
+    const order = rankTeams(teams, played.concat(results), eloFn);
+    pWin[order[0]] += prob;
+    pAdv[order[0]] += prob;
+    pAdv[order[1]] += prob;
+    const table = tableFrom(teams, played.concat(results));
+    teams.forEach(n => { expPts[n] += table[n].pts * prob; });
+  };
+
+  if (dists.length === 0) {
+    tally([], 1);
+  } else {
+    const recurse = (k, acc, prob) => {
+      if (k === dists.length) { tally(acc, prob); return; }
+      for (const outcome of dists[k]) {
+        recurse(k + 1, acc.concat([outcome]), prob * outcome.p);
+      }
+    };
+    recurse(0, [], 1);
+  }
+
+  const standings = tableFrom(teams, played);
+  const teamsOut = teams
+    .map(n => ({
+      team: n,
+      standing: standings[n],
+      pWin: round1(pWin[n] * 100),
+      pAdvance: round1(pAdv[n] * 100),
+      expPts: round1(expPts[n]),
+      clinched: pAdv[n] >= 0.9995,
+      eliminated: pAdv[n] <= 0.0005,
+    }))
+    .sort((a, b) => b.pWin - a.pWin || b.pAdvance - a.pAdvance || b.standing.pts - a.standing.pts);
+
+  return { teams: teamsOut, remaining: remaining.length, approx };
+}
+
+module.exports = {
+  tableFrom, currentStandings, inferGroups, normalizeMatch,
+  rankTeams, finalScoreDist, projectGroup, round1,
+};
