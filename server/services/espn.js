@@ -92,8 +92,11 @@ function convertEvent(event) {
   const status = mapStatus(comp.status || event.status);
   const elapsed = comp.status?.clock ? Math.floor(comp.status.clock / 60) : null;
 
-  const homeScore = parseInt(homeComp.score) || null;
-  const awayScore = parseInt(awayComp.score) || null;
+  // NB: use explicit NaN check, not `|| null` — a score of 0 is falsy and would
+  // otherwise be turned into null, dropping legitimate 1-0 / 3-0 results.
+  const parseScore = s => { const n = parseInt(s, 10); return Number.isNaN(n) ? null : n; };
+  const homeScore = parseScore(homeComp.score);
+  const awayScore = parseScore(awayComp.score);
   const isFinished = status === 'FT';
   const isLive = ['1H', 'HT', '2H', 'ET', 'P'].includes(status);
 

@@ -29,6 +29,14 @@ test('ESPN second-half status is normalized to 2H', () => {
   assert.equal(fixture.fixture.status.elapsed, 67);
 });
 
+test('ESPN score of 0 is parsed as 0, not dropped to null', () => {
+  // makeEvent scores home '1', away '0'. The away 0 must survive as 0.
+  const fixture = espn.convertEvent(makeEvent('STATUS_FINAL', 2));
+  assert.equal(fixture.fixture.status.short, 'FT');
+  assert.equal(fixture.goals.home, 1);
+  assert.equal(fixture.goals.away, 0);
+});
+
 test('live status is built from fresh ESPN fixtures when a match is in the second half', async () => {
   const originalFetchLiveFixtures = espn.fetchLiveFixtures;
   espn.fetchLiveFixtures = async () => [
